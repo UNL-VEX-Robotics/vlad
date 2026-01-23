@@ -1,0 +1,79 @@
+```mermaid
+erDiagram
+    %% Overall VEX Team
+    TEAM {
+        int id PK
+        string name
+    }
+
+    %% Sub teams like hardware, software, etc
+    %% lead_id is nullable
+    SUBTEAM {
+        int id PK
+        string name
+        int team_id FK
+        int lead_id FK
+    }
+
+    %% Members of a team
+    USER {
+        int id PK
+        int team_id FK
+        string name
+        string email
+        string password_hash
+    }
+
+    %% Join Table for USER and SUBTEAM, as users can be part of multiple subteams
+    %% Composite PK using user_id and subteam_id
+    USER_SUBTEAM {
+        int user_id FK
+        int subteam_id FK
+        boolean notify
+    }
+
+    %% Projects
+    %% deadline is nullable
+    PROJECT {
+        int id PK
+        int subteam_id FK
+        string title
+        string description
+        string status
+        date deadline
+    }
+
+    %% TASK 
+    %% deadline is nullable
+    TASK {
+        int id PK
+        int project_id FK
+        string title
+        string description
+        string status
+        date deadline
+    }
+
+    %% Join Table to assign multiple users to tasks
+    %% Composite PK using task_id and user_id
+    TASK_ASSIGNEE {
+        int task_id FK
+        int user_id FK
+    }
+
+    %% 1:1 relationships
+    USER ||--|| SUBTEAM : "lead_id"
+    USER ||--|| TEAM : "team_id"
+
+    %% 1:N relationships
+    TEAM ||--o{ SUBTEAM : "team_id"
+    SUBTEAM ||--o{ PROJECT : "subteam_id"
+    PROJECT ||--o{ TASK : "project_id"
+
+    %% M:N relationships via join tables
+    USER ||--o{ USER_SUBTEAM : "user_id"
+    SUBTEAM ||--o{ USER_SUBTEAM : "subteam_id"
+
+    USER ||--o{ TASK_ASSIGNEE : "user_id"
+    TASK ||--o{ TASK_ASSIGNEE : "task_id"
+```
