@@ -53,7 +53,7 @@ export async function signup(req, res) {
   }
 }
 
-async function checkPassword(plainPassword, hashedPassword) {
+async function checkPassword(plainPassword, hashedPassword, res) {
     try {
         // bcrypt.compare returns a boolean (true/false)
         const isMatch = await bcrypt.compare(plainPassword, hashedPassword);
@@ -72,35 +72,28 @@ export async function login(req, res){
   const { email, password } = req.body;
 
   // Check if all fields are filled in
-  if (!!email || !password) {
+  if (!email || !password) {
     return res.status(400).json({ error: 'Missing required fields.' });
   }
 
   try {
     // Ensure user doesn't already exist
-    const existingUser = await pool.query(
-      'SELECT id FROM user_account WHERE email = $1',
+    const userResult = await pool.query(
+      'SELECT id, user_name, password_hash FROM user_account WHERE email = $1',
       [email]
     );
+
+    const user = userResult.rows[0];
     
-    if (!(existingUser.rows.length > 0)) {
+    if (!user) {
       return res.status(400).json({ error: 'Invalid credentials' });
     }
 
     //Ensure that the password is correct
-    const hashedPassword = await pool.query(
-      'SELECT password_hash FROM user_account WHERE email = $1',
-      [email]
-    );
-
-    if (checkPassword(password, hashedPassword)){
-      const userName = await pool.query(
-        'SELECT user_name FROM user_account WHERE email = $1',
-        [email]
-      );
-      res.status(202).json({
+    if (await checkPassword(password, user.password_hash, res)){
+      res.status(200).json({
         message: 'Login Successful',
-        user: userName,
+        user: { id: user.id, user_name: user.user_name },
       });
     }
     else {
