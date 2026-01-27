@@ -52,3 +52,62 @@ export async function signup(req, res) {
     res.status(500).json({ error: 'Server error' });
   }
 }
+
+async function checkPassword(plainPassword, hashedPassword) {
+    try {
+        // bcrypt.compare returns a boolean (true/false)
+        const isMatch = await bcrypt.compare(plainPassword, hashedPassword);
+        
+        if (isMatch) {
+            return true;
+        } else {
+            return false;
+        }
+    } catch (err) {
+        res.status(400).json({ error: 'Invalid credentials'})
+    }
+}
+
+export async function login(req, res){
+  const { email, password } = req.body;
+
+  // Check if all fields are filled in
+  if (!!email || !password) {
+    return res.status(400).json({ error: 'Missing required fields.' });
+  }
+
+  try {
+    // Ensure user doesn't already exist
+    const existingUser = await pool.query(
+      'SELECT id FROM user_account WHERE email = $1',
+      [email]
+    );
+    
+    if (!(existingUser.rows.length > 0)) {
+      return res.status(400).json({ error: 'Invalid credentials' });
+    }
+
+    //Ensure that the password is correct
+    const hashedPassword = await pool.query(
+      'SELECT password_hash FROM user_account WHERE email = $1',
+      [email]
+    );
+
+    if (checkPassword(password, hashedPassword)){
+      const userName = await pool.query(
+        'SELECT user_name FROM user_account WHERE email = $1',
+        [email]
+      );
+      res.status(202).json({
+        message: 'Login Successful',
+        user: userName,
+      });
+    }
+    else {
+      res.status(400).json({ error: 'Invalid credentials'})
+    }
+  }
+  catch (err) {
+    res.status(400).json({ error: 'Invalid credentials' });
+  }
+}
