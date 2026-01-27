@@ -2,6 +2,7 @@ import bcrypt from 'bcrypt';
 import pool from '../db.js';
 
 const SALT_ROUNDS = 12;
+const EMAIL_REGEX = '\w*@(?:\w*.)+';  
 
 export async function signup(req, res) {
   const { user_name, email, password, team_name } = req.body;
@@ -9,6 +10,12 @@ export async function signup(req, res) {
   // Check if all fields are filled in
   if (!user_name || !email || !password || !team_name) {
     return res.status(400).json({ error: 'Missing required fields.' });
+  }
+
+  // Check if email is valid
+  email = email.trim().toLowerCase();
+  if (!EMAIL_REGEX.test((email))) {
+    return res.status(400).json({ error: 'Invalid email.'})
   }
 
   try {
@@ -31,7 +38,6 @@ export async function signup(req, res) {
       return res.status(409).json({ error: 'User already exists' });
     }
 
-    
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
 
     const result = await pool.query(
