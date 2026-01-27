@@ -18,7 +18,7 @@ CREATE TABLE user_account (
     id SERIAL PRIMARY KEY,
     team_id INT NOT NULL REFERENCES team(id),
     user_name TEXT NOT NULL,
-    email TEXT UNIQUE NOT NULL,
+    email TEXT UNIQUE,
     password_hash TEXT NOT NULL
 );
 
