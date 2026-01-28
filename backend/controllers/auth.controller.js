@@ -1,5 +1,8 @@
 import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+
 import pool from '../db.js';
+import { generateJWT } from '../middleware/jwt_auth.js';
 
 const SALT_ROUNDS = 12;
 const EMAIL_REGEX = '\w*@(?:\w*.)+';  
@@ -97,6 +100,10 @@ export async function login(req, res){
 
     //Ensure that the password is correct
     if (await checkPassword(password, user.password_hash, res)){
+      // Assign JWT
+      generateJWT(res, user.id);
+
+      // Success message
       res.status(200).json({
         message: 'Login Successful',
         user: { id: user.id, user_name: user.user_name },

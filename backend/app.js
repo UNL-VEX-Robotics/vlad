@@ -1,12 +1,18 @@
+import bodyParser from "body-parser";
+import cors from 'cors';
 import express from 'express';
+
 import pool from './db.js';
 import authRoutes from './routes/auth.js';
 
-import bodyParser from "body-parser";
+const WEB_PORT = process.env.WEB_PORT;
 
 const app = express();
 app.use(express.json());
 app.use(bodyParser.urlencoded({extended: true}));
+app.use(cors({
+  origin: `http://localhost:${WEB_PORT}`
+}));
 
 app.get('/health', async (req, res) => {
   try {
