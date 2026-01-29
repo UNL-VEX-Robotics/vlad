@@ -1,6 +1,7 @@
 import bcrypt from 'bcrypt';
 import pool from '../db.js';
 
+
 const SALT_ROUNDS = 12;
 const EMAIL_REGEX = '\w*@(?:\w*.)+';  
 
