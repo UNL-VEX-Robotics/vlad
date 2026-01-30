@@ -19,7 +19,9 @@ CREATE TABLE user_account (
     team_id INT NOT NULL REFERENCES team(id),
     user_name TEXT NOT NULL,
     email TEXT UNIQUE,
-    password_hash TEXT NOT NULL
+    password_hash TEXT NOT NULL,
+    reset_token TEXT,
+    reset_expiry TIMESTAMP
 );
 
 -- Subteam Information
