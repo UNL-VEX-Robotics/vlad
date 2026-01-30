@@ -33,7 +33,9 @@ export async function sendResetPasswordEmail(req, res) {
     );
 
     const { to } = req.body;
-    const resetLink = `http://localhost:3000/reset-password?token=${resetToken}`;
+    const host = req.get('host');
+    const protocol = req.protocol;
+    const resetLink = `${protocol}://${host}/reset-password?token=${resetToken}`;
     const mailOptions = {
       from: process.env.EMAIL_USER,
       to: to,
@@ -76,6 +78,8 @@ export async function resetPassword(req, res) {
       "UPDATE user_account SET password_hash = $1, reset_token = NULL, reset_expiry = NULL WHERE id = $2",
       [hashed, user.rows[0].id]
     );
+
+    res.redirect('/reset-confirmation');
   }
   catch (err){
     console.error(err);

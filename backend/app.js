@@ -42,4 +42,8 @@ app.get('/reset-password', (req, res) => {
   res.send(`<html><body><form method="POST" action="/reset-password"><h3>Reset Your Password</h3><input type="hidden" name="token" value="${tokenFromEmail}" /><label>New Password:</label><input type="password" name="newPassword" required /><input type="submit" value="Update Password" /></form></body></html>`);
   });
 
+  app.get('/reset-confirmation', (req, res) => {
+    res.send("<html><body><h3>Your password has been successfully reset.</h3></body></html>");
+  });
+
 export default app;
