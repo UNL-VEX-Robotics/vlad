@@ -22,10 +22,13 @@
   },
   "homepage": "https://github.com/UNL-VEX-Robotics/vlad#readme",
   "dependencies": {
+    "@sequelize/cli": "^7.0.0-alpha.47",
+    "@sequelize/postgres": "^7.0.0-alpha.47",
     "bcrypt": "^6.0.0",
     "body-parser": "^2.2.2",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
-    "pg": "^8.17.2"
+    "pg": "^8.17.2",
+    "sequelize": "^6.37.7"
   }
 }
