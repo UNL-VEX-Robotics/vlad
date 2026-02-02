@@ -60,19 +60,19 @@ export async function signup(req, res) {
   }
 }
 
-async function checkPassword(plainPassword, hashedPassword, res) {
+async function checkPassword(plainPassword, hashedPassword) {
     try {
         // bcrypt.compare returns a boolean (true/false)
         const isMatch = await bcrypt.compare(plainPassword, hashedPassword);
         
-        if (isMatch) {
-            return true;
-        } else {
-            return false;
+        if (!isMatch) {
+          return false;
         }
     } catch (err) {
-        res.status(400).json({ error: 'Invalid credentials'})
+        return false;
     }
+
+    return true;
 }
 
 export async function login(req, res){
@@ -96,16 +96,17 @@ export async function login(req, res){
       return res.status(400).json({ error: 'Invalid credentials' });
     }
 
-    //Ensure that the password is correct
-    if (await checkPassword(password, user.password_hash, res)){
-      res.status(200).json({
-        message: 'Login Successful',
-        user: { id: user.id, user_name: user.user_name },
-      });
+    // Ensure that the password is correct
+    if (!await checkPassword(password, user.password_hash)){
+      return res.status(400).json({ error: 'Invalid credentials'})
     }
-    else {
-      res.status(400).json({ error: 'Invalid credentials'})
-    }
+
+    req.session.user = user;
+
+    res.status(200).json({
+      message: 'Login Successful',
+      user: { id: user.id, user_name: user.user_name },
+    });
   }
   catch (err) {
     res.status(500).json({ error: 'Server error' });
