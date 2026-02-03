@@ -10,7 +10,8 @@ DROP TABLE IF EXISTS team;
 -- Team Information
 CREATE TABLE team (
     id SERIAL PRIMARY KEY,
-    name TEXT NOT NULL
+    name TEXT NOT NULL,
+    lead_id INT REFERENCES user_account(id)
 );
 
 -- User Account Information
@@ -21,7 +22,8 @@ CREATE TABLE user_account (
     email TEXT UNIQUE,
     password_hash TEXT NOT NULL,
     reset_token TEXT,
-    reset_expiry TIMESTAMP
+    reset_expiry TIMESTAMP,
+    is_approved BOOLEAN NOT NULL DEFAULT FALSE
 );
 
 -- Subteam Information

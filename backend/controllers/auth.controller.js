@@ -43,8 +43,8 @@ export async function signup(req, res) {
 
     const result = await pool.query(
       `
-      INSERT INTO user_account (user_name, email, password_hash, team_id)
-      VALUES ($1, $2, $3, $4)
+      INSERT INTO user_account (user_name, email, password_hash, team_id, is_approved)
+      VALUES ($1, $2, $3, $4, FALSE)
       RETURNING id, user_name, email
       `,
       [user_name, email, passwordHash, team_id]
@@ -108,6 +108,30 @@ export async function login(req, res){
     }
   }
   catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+}
+
+// Allows a user to request to join a team after being rejected or removed from a team
+export async function teamRequest(req, res) {
+  const { team_name, user_id } = req.body;
+  try {
+    const teamResult = await pool.query(
+      "SELECT id FROM team WHERE name = $1",
+      [team_name]
+    );
+    if (teamRequest.rows.length === 0) {
+      return res.status(400).json({ error: 'Team not found' });
+    }
+    const team_id = teamResult.rows[0].id;
+    await pool.query(
+      "UPDATE user_account SET team_id = $1 WHERE id = $2",
+      [team_id, user_id]
+    );
+    res.status(200).json({ message: 'Team request submitted' });
+  }
+  catch (err) {
+    console.error(err);
     res.status(500).json({ error: 'Server error' });
   }
 }
