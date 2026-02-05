@@ -9,6 +9,11 @@ const app = express();
 app.use(express.json());
 app.use(bodyParser.urlencoded({extended: true}));
 
+
+app.use('/auth', authRoutes);
+
+app.use('/email', emailRoutes);
+
 app.get('/health', async (req, res) => {
   try {
     await pool.query('SELECT 1');
@@ -19,6 +24,15 @@ app.get('/health', async (req, res) => {
   }
 });
 
+app.get('/signup', (req, res) => {
+    res.send(`<html><body><form method=\"POST\" action=\"/auth/signup\">
+      <Label>Username:</Label> <input name=\"user_name\" />
+      <Label>Email:</Label> <input name=\"email\" />
+      <Label>Password:</Label> <input type=\"password\" name=\"password\">
+      <Label>Team Name:</Label> <input name=\"team_name\" />
+      <input type=\"submit\" /></form></html>`);
+})
+
 app.get('/login', (req, res) => {
    res.send("<html><body><form method=\"POST\"><input name=\"username\" /><input type=\"password\" name=\"password\"> <input type=\"submit\" /></form></html>");
 });
@@ -28,15 +42,11 @@ app.post('/login', (request, response)=> {
   response.send("POSTED");
 });
 
-app.use('/auth', authRoutes);
-
-app.use('/email', emailRoutes);
 
 app.get('/email', (req, res) => {
   res.send("<html><body><form method=\"POST\" action=\"/email/send\"><input name=\"to\" /><input type=\"submit\" /></form></html>");
 }); 
 
-app.use('/', emailRoutes)
 app.get('/reset-password', (req, res) => {
   const tokenFromEmail = req.query.token;
   res.send(`<html><body><form method="POST" action="/reset-password"><h3>Reset Your Password</h3><input type="hidden" name="token" value="${tokenFromEmail}" /><label>New Password:</label><input type="password" name="newPassword" required /><input type="submit" value="Update Password" /></form></body></html>`);

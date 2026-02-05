@@ -10,8 +10,7 @@ DROP TABLE IF EXISTS team;
 -- Team Information
 CREATE TABLE team (
     id SERIAL PRIMARY KEY,
-    name TEXT NOT NULL,
-    lead_id INT REFERENCES user_account(id)
+    name TEXT NOT NULL
 );
 
 -- User Account Information
@@ -25,6 +24,9 @@ CREATE TABLE user_account (
     reset_expiry TIMESTAMP,
     is_approved BOOLEAN NOT NULL DEFAULT FALSE
 );
+
+-- Add lead_id to team table
+ALTER TABLE team ADD COLUMN lead_id INT REFERENCES user_account(id);
 
 -- Subteam Information
 CREATE TABLE subteam (
@@ -92,6 +94,13 @@ BEGIN
         -- Password hash placeholder; replace with a real bcrypt hash
         INSERT INTO user_account (team_id, user_name, email, password_hash)
         VALUES (1, 'SKERS_Admin', 'skers.vurc@gmail.com', '$2b$12$examplehashhere');
+    END IF;
+END$$;
+
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM user_account WHERE id = 1) THEN
+        UPDATE team SET lead_id = 1 WHERE id = 1;
     END IF;
 END$$;
 

@@ -3,7 +3,7 @@ import pool from '../db.js';
 
 
 const SALT_ROUNDS = 12;
-const EMAIL_REGEX = '\w*@(?:\w*.)+';  
+const EMAIL_REGEX = /\w*@(?:\w*.)+/;  
 
 export async function signup(req, res) {
   const { user_name, email, password, team_name } = req.body;
@@ -14,8 +14,8 @@ export async function signup(req, res) {
   }
 
   // Check if email is valid
-  email = email.trim().toLowerCase();
-  if (!EMAIL_REGEX.test((email))) {
+  const clean_email = email.trim().toLowerCase();
+  if (!EMAIL_REGEX.test((clean_email))) {
     return res.status(400).json({ error: 'Invalid email.'})
   }
 
