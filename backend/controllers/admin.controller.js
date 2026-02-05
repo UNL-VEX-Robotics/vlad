@@ -65,7 +65,7 @@ export async function rejectUserSignup(req, res) {
     try {
         // Dont want to delete user completely, but let them reapply to another team later need to decide how to handle this
         const result = await pool.query(
-            "UPDATE user_account SET team_id = -1 WHERE id = $1 RETURNING id, user_name, email, team_id",
+            "UPDATE user_account SET team_id = NULL WHERE id = $1 RETURNING id, user_name, email, team_id",
             [user_id]
         );
         res.status(200).json({

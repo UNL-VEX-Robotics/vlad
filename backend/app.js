@@ -29,9 +29,26 @@ app.get('/signup', (req, res) => {
       <Label>Username:</Label> <input name=\"user_name\" />
       <Label>Email:</Label> <input name=\"email\" />
       <Label>Password:</Label> <input type=\"password\" name=\"password\">
-      <Label>Team Name:</Label> <input name=\"team_name\" />
       <input type=\"submit\" /></form></html>`);
-})
+});
+
+// For now they have to enter their user ID manually to create a team this will be fixed
+// later when proper login sessions are implemented
+app.get('/create-team', (req, res) => {
+    res.send(`<html><body><form method=\"POST\" action=\"/auth/create-team\">
+      <Label>Team Name:</Label> <input name=\"team_name\" />
+      <Label>Your User ID:</Label> <input name=\"user_id\" />
+      <input type=\"submit\" /></form></html>`);
+});
+
+// For now they have to enter their user ID manually to create a team this will be fixed
+// later when proper login sessions are implemented
+app.get('/join-team', (req, res) => {
+    res.send(`<html><body><form method=\"POST\" action=\"/auth/join-team\">
+      <Label>Team Name:</Label> <input name=\"team_name\" />
+      <Label>Your User ID:</Label> <input name=\"user_id\" />
+      <input type=\"submit\" /></form></html>`);
+});
 
 app.get('/login', (req, res) => {
    res.send("<html><body><form method=\"POST\"><input name=\"username\" /><input type=\"password\" name=\"password\"> <input type=\"submit\" /></form></html>");

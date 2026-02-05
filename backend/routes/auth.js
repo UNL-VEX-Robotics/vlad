@@ -1,5 +1,5 @@
 import express from 'express';
-import { signup, login } from '../controllers/auth.controller.js';
+import { signup, login, createTeam, teamRequest } from '../controllers/auth.controller.js';
 
 const router = express.Router();
 
@@ -8,5 +8,11 @@ router.post('/signup', signup);
 
 // POST /auth/login
 router.post('/login', login);
+
+// POST /auth/create-team
+router.post('/create-team', createTeam);
+
+// POST /auth/join-team
+router.post('/join-team', teamRequest);
 
 export default router;

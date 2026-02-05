@@ -1,4 +1,5 @@
 -- Reset Tables
+ALTER TABLE team DROP COLUMN lead_id;
 DROP TABLE IF EXISTS task_assignee;
 DROP TABLE IF EXISTS task;
 DROP TABLE IF EXISTS project;
@@ -16,7 +17,7 @@ CREATE TABLE team (
 -- User Account Information
 CREATE TABLE user_account (
     id SERIAL PRIMARY KEY,
-    team_id INT NOT NULL REFERENCES team(id),
+    team_id INT REFERENCES team(id),
     user_name TEXT NOT NULL,
     email TEXT UNIQUE,
     password_hash TEXT NOT NULL,
@@ -92,8 +93,8 @@ DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM user_account) THEN
         -- Password hash placeholder; replace with a real bcrypt hash
-        INSERT INTO user_account (team_id, user_name, email, password_hash)
-        VALUES (1, 'SKERS_Admin', 'skers.vurc@gmail.com', '$2b$12$examplehashhere');
+        INSERT INTO user_account (team_id, user_name, email, password_hash, is_approved)
+        VALUES (1, 'SKERS_Admin', 'skers.vurc@gmail.com', '$2b$12$examplehashhere', true);
     END IF;
 END$$;
 
