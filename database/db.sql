@@ -66,6 +66,16 @@ CREATE TABLE task (
     duedate TIMESTAMPTZ
 );
 
+-- Session Information
+CREATE TABLE session (
+    sid VARCHAR NOT NULL PRIMARY KEY COLLATE "default",
+    sess JSON NOT NULL,
+    expire TIMESTAMP(6) NOT NULL
+);
+
+-- Index for performance (helps the server clear out old sessions quickly)
+CREATE INDEX "IDX_session_expire" ON session (expire);
+
 -- Join Table for user_account and task
 CREATE TABLE task_assignee (
     task_id INT NOT NULL REFERENCES task(id),

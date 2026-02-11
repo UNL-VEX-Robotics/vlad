@@ -1,5 +1,6 @@
 import bcrypt from 'bcrypt';
 import pool from '../db.js';
+import session from 'express-session';
 
 
 const SALT_ROUNDS = 12;
@@ -91,10 +92,19 @@ export async function login(req, res){
 
     //Ensure that the password is correct
     if (await checkPassword(password, user.password_hash, res)){
-      res.status(200).json({
-        message: 'Login Successful',
-        user: { id: user.id, user_name: user.user_name },
+      req.session.user_id = user.id;
+      req.session.user_name = user.user_name;
+      req.session.save((err) => {
+        if (err) {
+            console.error("Session Save Error:", err);
+            return res.status(500).send("Error saving session");
+        }
+        res.redirect('/create-team');
       });
+      // res.status(200).json({
+      //   message: 'Login Successful',
+      //   user: { id: user.id, user_name: user.user_name },
+      // });
     }
     else {
       res.status(400).json({ error: 'Invalid credentials'})
@@ -108,7 +118,8 @@ export async function login(req, res){
 // Create a new team
 export async function createTeam(req, res) {
   const client = await pool.connect();
-  const { team_name, user_id } = req.body;
+  const { team_name } = req.body;
+  const user_id = req.session.user_id;
   try {
     
     //Check if team already exists
@@ -149,7 +160,8 @@ export async function createTeam(req, res) {
 
 // Allows a user to request to join a team after being rejected or removed from a team
 export async function teamRequest(req, res) {
-  const { team_name, user_id } = req.body;
+  const { team_name } = req.body;
+  const user_id = req.session.user_id;
   try {
     const teamResult = await pool.query(
       "SELECT id FROM team WHERE name = $1",
