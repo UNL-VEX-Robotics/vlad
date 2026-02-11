@@ -1,6 +1,7 @@
 import bcrypt from 'bcrypt';
 import pool from '../db.js';
 import session from 'express-session';
+import pgSession from 'connect-pg-simple'
 
 
 const SALT_ROUNDS = 12;
@@ -113,6 +114,18 @@ export async function login(req, res){
   catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
+}
+
+export async function logout(req, res){
+  req.session.destroy((err) => {
+    if (err) {
+      console.error("Logout Error:", err);
+      return res.status(500).json({ error: 'Could not log out' });
+    }
+    res.clearCookie('connect.sid');
+
+    res.redirect('/login?message=logged-out');
+  });
 }
 
 // Create a new team

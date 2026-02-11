@@ -75,15 +75,10 @@ app.get('/login', (req, res) => {
    res.send(`<html><body><form method=\"POST\" action=\"/auth/login\">
     <Label>Email:</Label> <input name=\"email\" />
     <Label>Password:</Label> <input type=\"password\" name=\"password\"> 
-    <input type=\"submit\" /></form></html>`);
-});
-
-app.post('/logout', (req, res) => {
-  req.session.destroy((err) => {
-    if (err) return res.status(500).send("Could not log out");
-    res.clearCookie('connect.sid'); // The default session cookie name
-    res.send("Logged out successfully");
-  });
+    <input type=\"submit\" /></form>
+    <form action="/auth/logout" method="POST">
+    <button type="submit">Log Out</button>
+    </form></html>`);
 });
 
 app.post('/login', (request, response)=> {
