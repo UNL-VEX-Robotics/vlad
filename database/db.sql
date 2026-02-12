@@ -7,11 +7,12 @@ DROP TABLE IF EXISTS user_subteam;
 DROP TABLE IF EXISTS subteam;
 DROP TABLE IF EXISTS user_account;
 DROP TABLE IF EXISTS team;
+DROP TABLE IF EXISTS session;
 
 -- Team Information
 CREATE TABLE team (
     id SERIAL PRIMARY KEY,
-    name TEXT NOT NULL
+    name TEXT NOT NULL UNIQUE
 );
 
 -- User Account Information

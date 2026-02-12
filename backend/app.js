@@ -52,52 +52,76 @@ app.get('/health', async (req, res) => {
 
 app.get('/signup', (req, res) => {
     res.send(`<html><body><form method=\"POST\" action=\"/auth/signup\">
+      <h2> Sign Up </h2>
       <Label>Username:</Label> <input name=\"user_name\" />
       <Label>Email:</Label> <input name=\"email\" />
       <Label>Password:</Label> <input type=\"password\" name=\"password\">
-      <input type=\"submit\" /></form></html>`);
+      <input type=\"submit\" /></form>
+      <form method=\"GET\" action=\"/login\">
+      <button type=\"submit\"> Login </button></html>`);
 });
 
 app.get('/create-team', isAuthenticated, (req, res) => {
     res.send(`<html><body><form method=\"POST\" action=\"/auth/create-team\">
-      <Label>${req.session.user_name}</Label>
+      <h2> Create A New Team </h2>
       <Label>Team Name:</Label> <input name=\"team_name\" />
       <input type=\"submit\" /></form></html>`);
 });
 
 app.get('/join-team', isAuthenticated, (req, res) => {
     res.send(`<html><body><form method=\"POST\" action=\"/auth/join-team\">
+      <h2> Join Team </h2>
       <Label>Team Name:</Label> <input name=\"team_name\" />
       <input type=\"submit\" /></form></html>`);
 });
 
 app.get('/login', (req, res) => {
    res.send(`<html><body><form method=\"POST\" action=\"/auth/login\">
+    <h2> Log In </h2>
     <Label>Email:</Label> <input name=\"email\" />
     <Label>Password:</Label> <input type=\"password\" name=\"password\"> 
     <input type=\"submit\" /></form>
-    <form action="/auth/logout" method="POST">
-    <button type="submit">Log Out</button>
-    </form></html>`);
+    <form action=\"/email\" method=\"GET\">
+    <button type=\"submit\">Reset Password</button></form>
+    <form action=\"/signup\" method=\"GET\">
+    <button type=\"submit\">Signup</button>
+    </form></html>
+    `);
 });
 
-app.post('/login', (request, response)=> {
-  console.log(request.body);
-  response.send("POSTED");
+app.get('/dashboard', isAuthenticated, (req, res) => {
+  let html = `<html><body><form method=\"POST\"><h2> Welcome, ${req.session.user_name} to VLAD <h2></form>`
+  if (!req.session.team){
+    html += `<form action=\"/create-team\" method=\"GET\"><button type=\"submit\">Create Team</button></form></html><form action=\"/join-team\" method=\"GET\"><button type=\"submit\">Join Team</button></form></html>`
+  }
+  else {
+      html += `<form><Label> You are a member of Team: ${req.session.team}</Label></form>`  
+  }
+
+  html += `<form action=\"/email\" method=\"GET\">
+    <button type=\"submit\">Reset Password</button>
+    </form></html>
+    <form action=\"/health\" method=\"GET\">
+    <button type=\"submit\">Health</button>
+    </form></html>
+    <form action=\"/auth/logout\" method=\"POST\">
+    <button type=\"submit\">Log Out</button>
+    </form></html>`
+
+  res.send(html);
 });
 
-
-app.get('/email', isAuthenticated, (req, res) => {
-  res.send("<html><body><form method=\"POST\" action=\"/email/send\"><input name=\"to\" /><input type=\"submit\" /></form></html>");
+app.get('/email', (req, res) => {
+  res.send("<html><body><form method=\"POST\" action=\"/email/send\"><h2>Reset Password</h2><input name=\"to\" /><input type=\"submit\" /></form></html>");
 }); 
 
-app.get('/reset-password', isAuthenticated, (req, res) => {
+app.get('/reset-password', (req, res) => {
   const tokenFromEmail = req.query.token;
   res.send(`<html><body><form method="POST" action="/reset-password"><h3>Reset Your Password</h3><input type="hidden" name="token" value="${tokenFromEmail}" /><label>New Password:</label><input type="password" name="newPassword" required /><input type="submit" value="Update Password" /></form></body></html>`);
-  });
+});
 
-  app.get('/reset-confirmation', (req, res) => {
-    res.send("<html><body><h3>Your password has been successfully reset.</h3></body></html>");
-  });
+app.get('/reset-confirmation', (req, res) => {
+  res.send("<html><body><h3>Your password has been successfully reset.</h3></body></html>");
+});
 
 export default app;

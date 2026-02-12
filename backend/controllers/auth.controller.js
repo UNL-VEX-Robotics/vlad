@@ -42,11 +42,11 @@ export async function signup(req, res) {
       `,
       [user_name, email, passwordHash]
     );
-
-    res.status(201).json({
-      message: 'User created',
-      user: result.rows[0],
-    });
+    res.redirect("/dashboard");
+    // res.status(201).json({
+    //   message: 'User created',
+    //   user: result.rows[0],
+    // });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
@@ -81,7 +81,7 @@ export async function login(req, res){
   try {
     // Ensure user doesn't already exist
     const userResult = await pool.query(
-      'SELECT id, user_name, password_hash FROM user_account WHERE email = $1',
+      'SELECT id, user_name, password_hash, team_id FROM user_account WHERE email = $1',
       [email]
     );
 
@@ -89,6 +89,13 @@ export async function login(req, res){
     
     if (!user) {
       return res.status(400).json({ error: 'Invalid credentials' });
+    }
+    if (user.team_id != null){
+      const team = await pool.query(
+        'SELECT name FROM team WHERE id = $1',
+        [user.team_id]
+      );
+      req.session.team = team.rows[0].name;
     }
 
     //Ensure that the password is correct
@@ -100,7 +107,7 @@ export async function login(req, res){
             console.error("Session Save Error:", err);
             return res.status(500).send("Error saving session");
         }
-        res.redirect('/create-team');
+        res.redirect('/dashboard');
       });
       // res.status(200).json({
       //   message: 'Login Successful',
@@ -158,7 +165,9 @@ export async function createTeam(req, res) {
     );
 
     await client.query('COMMIT');
-    res.status(201).json({message: "Team created", team: result.rows[0]});
+    req.session.team = team_name;
+    res.redirect("/dashboard");
+    //res.status(201).json({message: "Team created", team: result.rows[0]});
   }
   catch (err) {
     await client.query('ROLLBACK');
@@ -188,7 +197,9 @@ export async function teamRequest(req, res) {
       "UPDATE user_account SET team_id = $1 WHERE id = $2",
       [team_id, user_id]
     );
-    res.status(200).json({ message: 'Team request submitted' });
+    req.session.team = team_name;
+    res.redirect("/dashboard");
+    //res.status(200).json({ message: 'Team request submitted' });
   }
   catch (err) {
     console.error(err);
