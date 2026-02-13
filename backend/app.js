@@ -107,9 +107,19 @@ app.get('/login', (req, res) => {
 app.get('/dashboard', isAuthenticated, async (req, res) => {
   try {
     let memberListHtml = '';
+    let approvalMessage = '';
+    let isApproved = false;
+
+    // 1. Fetch current user's approval status and team info from DB
+    const userCheck = await pool.query(
+      `SELECT is_approved, team_id FROM user_account WHERE id = $1`,
+      [req.session.user_id]
+    );
     
-    // 1. If the user has a team name in their session, find the members
-    if (req.session.team) {
+    isApproved = userCheck.rows[0]?.is_approved;
+
+    // 2. Only fetch teammates if the user has a team AND is approved
+    if (req.session.team && isApproved) {
       const membersResult = await pool.query(
         `SELECT user_name FROM user_account 
          WHERE team_id = (SELECT id FROM team WHERE name = $1) 
@@ -117,9 +127,13 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
         [req.session.team]
       );
       memberListHtml = membersResult.rows.map(m => `<li>${m.user_name}</li>`).join('');
-    }
+    } else if (req.session.team && !isApproved && (userCheck.rows[0].team_id != null)) {
+      // Message for users waiting for the lead to click "Accept"
+      approvalMessage = `<p style="color: orange; font-weight: bold;">⏳ Waiting for team approval...</p>`;
+      memberListHtml = ' ';
+    } 
 
-    // 2. Build the HTML with the sidebar on the right
+    // 3. Build the HTML
     let html = `
     <html>
       <head>
@@ -138,20 +152,21 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
       </head>
       <body>
         <div class="main-content">
-          <h2> Welcome, ${req.session.user_name} to VLAD </h2>`;
+          <h2> Welcome, ${req.session.user_name} to VLAD </h2>
+          ${approvalMessage} `;
 
     // Create/Join Logic
-    if (!req.session.team) {
+    if (!req.session.team || (userCheck.rows[0].team_id === null)) {
       html += `
         <form action="/create-team" method="GET"><button type="submit">Create Team</button></form>
         <form action="/join-team" method="GET"><button type="submit">Join Team</button></form>`;
-    } else {
+    } else if (isApproved){
       html += `<p><strong>You are a member of Team: ${req.session.team}</strong></p>`;
     }
 
     // Admin Logic
     if (req.session.admin) {
-      html += `<form action="/accept-requests" method="GET"><button type="submit">Manage Team</button></form>`;
+      html += `<form action="/team-requests" method="GET"><button type="submit">Manage Team</button></form>`;
     }
 
     // Utility Buttons
@@ -185,7 +200,7 @@ app.get('/manage-team', isAdmin, async (req, res) => {
   
 });
 
-app.get('/accept-requests', isAdmin, async (req, res) => {
+app.get('/team-requests', isAdmin, async (req, res) => {
   try {
     //Fetch the data
     const requests = await pool.query(
@@ -209,6 +224,10 @@ app.get('/accept-requests', isAdmin, async (req, res) => {
                 <form action="/admin/approve-member" method="POST" style="display:inline;">
                     <input type="hidden" name="user_id" value="${user.id}" />
                     <button type="submit">Accept</button>
+                </form>
+                <form action="/admin/reject-member" method="POST" style="display:inline;">
+                    <input type="hidden" name="user_id" value="${user.id}" />
+                    <button type="submit">Reject</button>
                 </form>
             </li>`;
       }

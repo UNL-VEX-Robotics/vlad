@@ -92,6 +92,8 @@ export async function login(req, res){
     if (!user) {
       return res.status(400).json({ error: 'Invalid credentials' });
     }
+    req.session.admin = false;
+    req.session.team = null;
     if (user.team_id != null){
       const team = await pool.query(
         'SELECT name, lead_id FROM team WHERE id = $1',
@@ -100,9 +102,6 @@ export async function login(req, res){
       req.session.team = team.rows[0].name;
       if (user.id === team.rows[0].lead_id){
         req.session.admin = true;
-      }
-      else {
-        req.session.admin = false;
       }
     }
 

@@ -29,7 +29,7 @@ export async function acceptUserSignup(req, res) {
             [user_id]
         );
 
-        res.redirect('/dashboard');
+        res.redirect('/accept-requests');
 
         // res.status(200).json({
         //     success: true,
@@ -47,18 +47,19 @@ export async function acceptUserSignup(req, res) {
 
 // Rejects a user signup request (for admin dashboard view)
 export async function rejectUserSignup(req, res) {
-    const { user_id } = req.params;
+    const { user_id } = req.body;
     try {
         // Dont want to delete user completely, but let them reapply to another team later need to decide how to handle this
         const result = await pool.query(
             "UPDATE user_account SET team_id = NULL WHERE id = $1 RETURNING id, user_name, email, team_id",
             [user_id]
         );
-        res.status(200).json({
-            success: true,
-            message: "User rejected successfully",
-            data: result.rows[0]
-        });
+        res.redirect('/team-requests');
+        // res.status(200).json({
+        //     success: true,
+        //     message: "User rejected successfully",
+        //     data: result.rows[0]
+        // });
     }
     catch (error) {
         console.error("Error rejecting user:", error);
