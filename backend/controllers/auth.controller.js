@@ -42,6 +42,8 @@ export async function signup(req, res) {
       `,
       [user_name, email, passwordHash]
     );
+    req.session.user_id = result.rows[0].id;
+    req.session.user_name = result.rows[0].user_name;
     res.redirect("/dashboard");
     // res.status(201).json({
     //   message: 'User created',
@@ -92,10 +94,16 @@ export async function login(req, res){
     }
     if (user.team_id != null){
       const team = await pool.query(
-        'SELECT name FROM team WHERE id = $1',
+        'SELECT name, lead_id FROM team WHERE id = $1',
         [user.team_id]
       );
       req.session.team = team.rows[0].name;
+      if (user.id === team.rows[0].lead_id){
+        req.session.admin = true;
+      }
+      else {
+        req.session.admin = false;
+      }
     }
 
     //Ensure that the password is correct
@@ -166,6 +174,7 @@ export async function createTeam(req, res) {
 
     await client.query('COMMIT');
     req.session.team = team_name;
+    req.session.admin = true;
     res.redirect("/dashboard");
     //res.status(201).json({message: "Team created", team: result.rows[0]});
   }

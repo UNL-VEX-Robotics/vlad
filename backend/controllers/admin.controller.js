@@ -20,36 +20,22 @@ export async function getTeamUsers(req, res){
     }
 }
 
-// Get all pending user signup requests for the admin's team (for admin dashboard view)
-export async function getPendingUsers(req, res) {
-    try {
-        const adminTeamId = req.admin.team_id;
-        const result = await pool.query(
-            "SELECT id, user_name, email, team_id FROM user_account WHERE is_approved = FALSE AND team_id = $1"
-            [adminTeamId]
-        )
-        res.status(200).json({success: true, pendingUsers: result.rows});
-    }
-    catch (error) {
-        console.error("Error fetching pending users:", error);
-        res.status(500).json({success: false, message: "Failed to fetch pending users"});
-    }
-}
-
 // Accepts a user signup request by setting is_approved to true
 export async function acceptUserSignup(req, res) {
-    const { user_id } = req.params;
+    const { user_id } = req.body;
     try {
         const result = await pool.query(
             "UPDATE user_account SET is_approved = TRUE WHERE id = $1 RETURNING id, user_name, email, is_approved",
             [user_id]
         );
 
-        res.status(200).json({
-            success: true,
-            message: "User approved successfully",
-            data: result.rows[0]
-        });
+        res.redirect('/dashboard');
+
+        // res.status(200).json({
+        //     success: true,
+        //     message: "User approved successfully",
+        //     data: result.rows[0]
+        // });
     } catch (error) {
         console.error("Error approving user:", error);
         res.status(500).json({
