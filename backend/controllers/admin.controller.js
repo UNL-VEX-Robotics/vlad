@@ -29,7 +29,7 @@ export async function acceptUserSignup(req, res) {
             [user_id]
         );
 
-        res.redirect('/accept-requests');
+        res.redirect('/team-requests');
 
         // res.status(200).json({
         //     success: true,
