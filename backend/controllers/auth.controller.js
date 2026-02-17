@@ -5,7 +5,7 @@ import pgSession from 'connect-pg-simple'
 
 
 const SALT_ROUNDS = 12;
-const EMAIL_REGEX = /\w*@(?:\w*.)+/;  
+const EMAIL_REGEX = /\w*@(?:\w*.)+/;
 
 // User Signup
 export async function signup(req, res) {
@@ -19,7 +19,7 @@ export async function signup(req, res) {
   // Check if email is valid
   const clean_email = email.trim().toLowerCase();
   if (!EMAIL_REGEX.test((clean_email))) {
-    return res.status(400).json({ error: 'Invalid email.'})
+    return res.status(400).json({ error: 'Invalid email.' })
   }
 
   try {
@@ -44,6 +44,7 @@ export async function signup(req, res) {
     );
     req.session.user_id = result.rows[0].id;
     req.session.user_name = result.rows[0].user_name;
+    req.session.email = result.rows[0].email;
     res.redirect("/dashboard");
     // res.status(201).json({
     //   message: 'User created',
@@ -57,22 +58,22 @@ export async function signup(req, res) {
 
 // Helper function to check the password
 async function checkPassword(plainPassword, hashedPassword, res) {
-    try {
-        // bcrypt.compare returns a boolean (true/false)
-        const isMatch = await bcrypt.compare(plainPassword, hashedPassword);
-        
-        if (isMatch) {
-            return true;
-        } else {
-            return false;
-        }
-    } catch (err) {
-        res.status(400).json({ error: 'Invalid credentials'})
+  try {
+    // bcrypt.compare returns a boolean (true/false)
+    const isMatch = await bcrypt.compare(plainPassword, hashedPassword);
+
+    if (isMatch) {
+      return true;
+    } else {
+      return false;
     }
+  } catch (err) {
+    res.status(400).json({ error: 'Invalid credentials' })
+  }
 }
 
 // User login function
-export async function login(req, res){
+export async function login(req, res) {
   const { email, password } = req.body;
 
   // Check if all fields are filled in
@@ -88,31 +89,31 @@ export async function login(req, res){
     );
 
     const user = userResult.rows[0];
-    
+
     if (!user) {
       return res.status(400).json({ error: 'Invalid credentials' });
     }
     req.session.admin = false;
     req.session.team = null;
-    if (user.team_id != null){
+    if (user.team_id != null) {
       const team = await pool.query(
         'SELECT name, lead_id FROM team WHERE id = $1',
         [user.team_id]
       );
       req.session.team = team.rows[0].name;
-      if (user.id === team.rows[0].lead_id){
+      if (user.id === team.rows[0].lead_id) {
         req.session.admin = true;
       }
     }
 
     //Ensure that the password is correct
-    if (await checkPassword(password, user.password_hash, res)){
+    if (await checkPassword(password, user.password_hash, res)) {
       req.session.user_id = user.id;
       req.session.user_name = user.user_name;
       req.session.save((err) => {
         if (err) {
-            console.error("Session Save Error:", err);
-            return res.status(500).send("Error saving session");
+          console.error("Session Save Error:", err);
+          return res.status(500).send("Error saving session");
         }
         res.redirect('/dashboard');
       });
@@ -122,7 +123,7 @@ export async function login(req, res){
       // });
     }
     else {
-      res.status(400).json({ error: 'Invalid credentials'})
+      res.status(400).json({ error: 'Invalid credentials' })
     }
   }
   catch (err) {
@@ -130,7 +131,7 @@ export async function login(req, res){
   }
 }
 
-export async function logout(req, res){
+export async function logout(req, res) {
   req.session.destroy((err) => {
     if (err) {
       console.error("Logout Error:", err);
@@ -148,7 +149,7 @@ export async function createTeam(req, res) {
   const { team_name } = req.body;
   const user_id = req.session.user_id;
   try {
-    
+
     //Check if team already exists
     const teamResult = await pool.query(
       'SELECT id FROM team WHERE name = $1',

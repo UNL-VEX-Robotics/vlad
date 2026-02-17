@@ -5,6 +5,8 @@ import bcrypt from 'bcrypt';
 
 const SALT_ROUNDS = 12;
 
+const verbose = false;
+
 // Configure the email transporter
 // TODO: Remove debug and logger
 const transporter = nodemailer.createTransport({
@@ -13,8 +15,8 @@ const transporter = nodemailer.createTransport({
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASSWORD,
   },
-  debug: true,
-  logger: true
+  debug: verbose,
+  logger: verbose
 })
 
 // Send a reset password email to the user
@@ -22,8 +24,7 @@ const transporter = nodemailer.createTransport({
 export async function sendResetPasswordEmail(req, res) {
   const resetToken = crypto.randomBytes(32).toString('hex');
   const expires = new Date(Date.now() + 3600000); // 1 hour later
-  console.log("Generated reset token: " + resetToken);
-  
+
   try {
     await pool.query(
       `
@@ -37,20 +38,53 @@ export async function sendResetPasswordEmail(req, res) {
     const protocol = req.protocol;
     const resetLink = `${protocol}://${host}/reset-password?token=${resetToken}`;
     const mailOptions = {
-      from: process.env.EMAIL_USER,
+      from: `"VLAD App" <${process.env.EMAIL_USER}>`, // Adds a nice display name
       to: to,
-      subject: 'Password Reset - VLAD Application',
-      html: `<h1>Reset your password</h1>
-          <p><p>You requested a password reset. Click <a href="${resetLink}">here</a> to reset your password. This link expires in 1 hour.</p></p>`
+      subject: 'Reset Your VLAD Password',
+      html: `
+    <div style="font-family: sans-serif; background-color: #f4f7f9; padding: 40px 10px; line-height: 1.6;">
+      <div style="max-width: 500px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+        
+        <div style="background-color: #3182ce; padding: 20px; text-align: center;">
+          <h1 style="color: #ffffff; margin: 0; font-size: 24px;">VLAD</h1>
+        </div>
+
+        <div style="padding: 30px; color: #4a5568;">
+          <h2 style="color: #2d3748; margin-top: 0;">Password Reset Request</h2>
+          <p>Hello,</p>
+          <p>We received a request to reset the password for your VLAD account. If you didn't make this request, you can safely ignore this email.</p>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${resetLink}" 
+               style="background-color: #3182ce; color: #ffffff; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
+               Reset My Password
+            </a>
+          </div>
+
+          <p style="font-size: 0.9rem; color: #718096;">
+            <strong>Note:</strong> This link will expire in <strong>1 hour</strong> for your security.
+          </p>
+        </div>
+
+        <div style="background-color: #f7fafc; padding: 20px; text-align: center; border-top: 1px solid #edf2f7;">
+          <p style="font-size: 12px; color: #a0aec0; margin: 0;">
+            If the button above doesn't work, copy and paste this link into your browser:
+            <br>
+            <a href="${resetLink}" style="color: #3182ce;">${resetLink}</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  `
     };
 
     await transporter.sendMail(mailOptions);
-    console.log("Successfully sent email to " + to);
-    res.status(200).json({ message: 'Email sent successfully' });
+    res.redirect('/email-sent');
+    //res.status(200).json({ message: 'Email sent successfully' });
   }
   catch (err) {
     console.error(err);
-    res.status(500).json({error: 'Failed to send email' });
+    res.status(500).json({ error: 'Failed to send email' });
   }
 }
 
@@ -59,7 +93,7 @@ export async function sendResetPasswordEmail(req, res) {
 export async function resetPassword(req, res) {
   const { token, newPassword } = req.body;
 
-  try{
+  try {
     // Find the user "connected" to this specific token
     const user = await pool.query(
       "SELECT * FROM user_account WHERE reset_token = $1 AND reset_expiry > NOW()",
@@ -72,7 +106,7 @@ export async function resetPassword(req, res) {
       return res.status(400).json({ error: 'Invalid or expired token' });
     }
 
-      // Hash the new password and update the user's password and clear the reset token
+    // Hash the new password and update the user's password and clear the reset token
     const hashed = await bcrypt.hash(newPassword, SALT_ROUNDS);
     await pool.query(
       "UPDATE user_account SET password_hash = $1, reset_token = NULL, reset_expiry = NULL WHERE id = $2",
@@ -81,7 +115,7 @@ export async function resetPassword(req, res) {
 
     res.redirect('/reset-confirmation');
   }
-  catch (err){
+  catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to reset password' });
   }

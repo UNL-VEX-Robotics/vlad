@@ -1,27 +1,34 @@
 import pool from '../db.js';
 
 /*
-TODO: test all admin functions no test have been run yet
+TODO: test all admin functions 
+    Tested functions:
+        rejectUserRequest
+        acceptUserRequest
+    Untested:
+        makeUserOwner
+    Unused:
+        getTeamUsers
 */
 
 // Get all users on the admin's team (for admin dashboard view) (could be moved to another file later for wider use)
-export async function getTeamUsers(req, res){
+export async function getTeamUsers(req, res) {
     try {
         const adminTeamId = req.admin.team_id;
         const result = await pool.query(
             "SELECT id, user_name, email, FROM user_account WHERE team_id = $1 AND is_approved = TRUE",
             [adminTeamId]
         );
-        res.status(200).json({success:true, users: result.rows});
+        res.status(200).json({ success: true, users: result.rows });
     }
-    catch (err){
+    catch (err) {
         console.error("Error fetching team users:", err);
-        res.status(500).json({success:false, message: "Failed to fetch team users"});
+        res.status(500).json({ success: false, message: "Failed to fetch team users" });
     }
 }
 
 // Accepts a user signup request by setting is_approved to true
-export async function acceptUserSignup(req, res) {
+export async function acceptUserRequest(req, res) {
     const { user_id } = req.body;
     try {
         const result = await pool.query(
@@ -46,7 +53,7 @@ export async function acceptUserSignup(req, res) {
 }
 
 // Rejects a user signup request (for admin dashboard view)
-export async function rejectUserSignup(req, res) {
+export async function rejectUserRequest(req, res) {
     const { user_id } = req.body;
     try {
         // Dont want to delete user completely, but let them reapply to another team later need to decide how to handle this
@@ -63,7 +70,7 @@ export async function rejectUserSignup(req, res) {
     }
     catch (error) {
         console.error("Error rejecting user:", error);
-        res.status(500).json({success: false, message: "Failed to reject user"});
+        res.status(500).json({ success: false, message: "Failed to reject user" });
     }
 }
 
@@ -78,17 +85,18 @@ export async function makeUserOwner(req, res) {
         );
 
         if (userExists.rows.length === 0) {
-            return res.status(400).json({success: false, message: "User not found"});
+            return res.status(400).json({ success: false, message: "User not found" });
         }
 
         const result = await pool.query(
             "UPDATE team SET lead_id = $1 WHERE id = (SELECT team_id FROM user_account WHERE id = $1) RETURNING id, lead_id",
             [user_id]
         );
-        res.status(200).json({success: true, message: "User promoted to team owner", data: result.rows[0]});
+        res.status(200).json({ success: true, message: "User promoted to team owner", data: result.rows[0] });
     }
     catch (error) {
         console.error("Error promoting user to owner:", error);
-        res.status(500).json({success: false, message: "Failed to promote user to owner"});
+        res.status(500).json({ success: false, message: "Failed to promote user to owner" });
     }
 }
+

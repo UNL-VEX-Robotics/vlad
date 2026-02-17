@@ -62,29 +62,74 @@ app.get('/health', async (req, res) => {
   }
 });
 
-// --- STYLING CONSTANT (Shared across all pages for a professional look) ---
 const commonStyles = `
 <style>
-    body { font-family: 'Inter', system-ui, sans-serif; margin: 0; background: #f0f2f5; color: #1a1a1a; display: flex; flex-direction: column; min-height: 100vh; }
-    .card { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); width: 100%; max-width: 400px; margin: auto; }
-    h2 { margin-top: 0; color: #2d3748; }
-    label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 0.9rem; color: #4a5568; }
-    input { width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #e2e8f0; border-radius: 6px; box-sizing: border-box; }
-    button, input[type="submit"] { 
-        width: 100%; padding: 10px; border: none; border-radius: 6px; 
-        background: #3182ce; color: white; font-weight: 600; cursor: pointer; transition: background 0.2s; 
+    :root {
+        --bg-body: #f0f2f5;
+        --bg-card: #ffffff;
+        --bg-sidebar: #ffffff;
+        --text-main: #1a1a1a;
+        --text-heading: #2d3748;
+        --text-label: #4a5568;
+        --text-muted: #718096;
+        --border-color: #e2e8f0;
+        --input-bg: #ffffff;
+        --btn-secondary-bg: #edf2f7;
+        --btn-secondary-text: #4a5568;
+        --badge-approved-bg: #c6f6d5;
+        --badge-approved-text: #22543d;
+        --badge-pending-bg: #feebc8;
+        --badge-pending-text: #744210;
     }
-    button:hover { background: #2b6cb0; }
-    .secondary-btn { background: #edf2f7; color: #4a5568; margin-top: 10px; }
-    .secondary-btn:hover { background: #e2e8f0; }
-    form { margin: 0; }
+
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --bg-body: #1a202c;
+            --bg-card: #2d3748;
+            --bg-sidebar: #2d3748;
+            --text-main: #f7fafc;
+            --text-heading: #edf2f7;
+            --text-label: #a0aec0;
+            --text-muted: #cbd5e0;
+            --border-color: #4a5568;
+            --input-bg: #1a202c;
+            --btn-secondary-bg: #4a5568;
+            --btn-secondary-text: #edf2f7;
+            --badge-approved-bg: #22543d;
+            --badge-approved-text: #c6f6d5;
+            --badge-pending-bg: #744210;
+            --badge-pending-text: #feebc8;
+        }
+    }
+
+    body { font-family: 'Inter', sans-serif; margin: 0; background: var(--bg-body); color: var(--text-main); display: flex; flex-direction: column; min-height: 100vh; }
+    .card { background: var(--bg-card); padding: 2rem; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); width: 100%; max-width: 400px; margin: auto; }
+    h2 { margin-top: 0; color: var(--text-heading); }
+    label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 0.9rem; color: var(--text-label); }
+    input { width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid var(--border-color); border-radius: 6px; box-sizing: border-box; background: var(--input-bg); color: var(--text-main); }
+    
+    button, input[type="submit"] { width: 100%; padding: 10px; border: none; border-radius: 6px; background: #3182ce; color: white; font-weight: 600; cursor: pointer; }
+    .secondary-btn { background: var(--btn-secondary-bg); color: var(--btn-secondary-text); margin-top: 4px; }
+    
+    /* Sidebar specific classes */
+    .sidebar { width: 280px; background: var(--bg-sidebar); border-left: 1px solid var(--border-color); padding: 20px; height: 100vh; box-sizing: border-box; }
+    .member-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border-color); position: relative; }
+    .dropdown-menu { display: none; position: absolute; right: 0; top: 30px; background: var(--bg-card); border: 1px solid var(--border-color); box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 100; width: 140px; border-radius: 6px; overflow: hidden;}
+    .dropdown-menu button { border-radius: 0; border: none; border-bottom: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-main); text-align: left; padding: 10px; font-size: 0.85rem; }
+
+    /* Profile UI Classes */
+    .info-group { margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; }
+    .info-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    .info-value { font-size: 1.1rem; color: var(--text-main); font-weight: 500; }
+    .badge-approved { background: var(--badge-approved-bg); color: var(--badge-approved-text); }
+    .badge-pending { background: var(--badge-pending-bg); color: var(--badge-pending-text); }
 </style>
 `;
 
 // --- ROUTES ---
 
 app.get('/signup', (req, res) => {
-    res.send(`<html><head>${commonStyles}</head><body>
+  res.send(`<html><head>${commonStyles}</head><body>
         <div class="card">
             <form method="POST" action="/auth/signup">
                 <h2>Sign Up</h2>
@@ -99,7 +144,7 @@ app.get('/signup', (req, res) => {
 });
 
 app.get('/login', (req, res) => {
-    res.send(`<html><head>${commonStyles}</head><body>
+  res.send(`<html><head>${commonStyles}</head><body>
         <div class="card">
             <form method="POST" action="/auth/login">
                 <h2>Log In</h2>
@@ -141,13 +186,14 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
             <button class="dot-btn" onclick="toggleMenu(event, 'menu-${m.id}')">⋮</button>
             <div id="menu-${m.id}" class="dropdown-menu">
                 <form action="/profile" method="GET" style="margin:0;"><input type="hidden" name="user_id" value="${m.id}"><button type="submit">View Profile</button></form>
-                <form action="/report" method="POST"><input type="hidden" name="user_id" value="${m.id}"><button type="submit">Report</button></form>
+                <form action="/report" method="POST" style="margin:0;"><input type="hidden" name="user_id" value="${m.id}"><button type="submit">Report</button></form>
             </div>
           </div>
         </li>
       `).join('');
     } else if (req.session.team && !isApproved && teamIdFromDb !== null) {
-      approvalMessage = `<div style="background: #fffaf0; border: 1px solid #fbd38d; padding: 15px; border-radius: 8px; color: #9c4221; margin-bottom: 20px;">⏳ Waiting for team lead approval...</div>`;
+      // Adjusted for Dark Mode compatibility
+      approvalMessage = `<div style="background: var(--badge-pending-bg); border: 1px solid var(--border-color); padding: 15px; border-radius: 8px; color: var(--badge-pending-text); margin-bottom: 20px;">⏳ Waiting for team lead approval...</div>`;
     }
 
     res.send(`
@@ -157,17 +203,59 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
         <style>
           body { display: flex; flex-direction: row; }
           .main-content { flex: 1; padding: 40px; }
-          .sidebar { width: 280px; background: white; border-left: 1px solid #e2e8f0; padding: 20px; height: 100vh; box-sizing: border-box; }
-          .member-row { display: flex; justify-content: space-between; align-items: center; padding: 1px 0; border-bottom: 1px solid #f7fafc; position: relative; }
-          .dot-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: #a0aec0; }
-          .dropdown-menu { display: none; position: absolute; right: 0; top: 15px; background: white; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 100; width: 140px; border-radius: 6px; overflow: hidden;}
-          .dropdown-menu button { border-radius: 0; border: none; border-bottom: 1px solid #f7fafc; background: white; color: #4a5568; text-align: left; padding: 10px; font-size: 0.85rem; }
-          .dropdown-menu button:hover { background: #edf2f7; }
+          
+          .sidebar { 
+            width: 280px; 
+            background: var(--bg-sidebar); 
+            border-left: 1px solid var(--border-color); 
+            padding: 20px; 
+            height: 100vh; 
+            box-sizing: border-box; 
+          }
+          
+          .member-row { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            padding: 5px 0; 
+            border-bottom: 1px solid var(--border-color); 
+            position: relative; 
+          }
+          
+          .dot-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-muted); }
+          
+          .dropdown-menu { 
+            display: none; 
+            position: absolute; 
+            right: 0; 
+            top: 25px; 
+            background: var(--bg-card); 
+            border: 1px solid var(--border-color); 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+            z-index: 100; 
+            width: 140px; 
+            border-radius: 6px; 
+            overflow: hidden;
+          }
+          
+          .dropdown-menu button { 
+            border-radius: 0; 
+            border: none; 
+            border-bottom: 1px solid var(--border-color); 
+            background: var(--bg-card); 
+            color: var(--text-main); 
+            text-align: left; 
+            padding: 8px 12px; 
+            font-size: 0.85rem; 
+          }
+          
+          .dropdown-menu button:hover { background: var(--btn-secondary-bg); }
+          .dropdown-menu form:last-child button { border-bottom: none; }
         </style>
       </head>
       <body>
         <div class="main-content">
-          <h2>Welcome, ${req.session.user_name}</h2>
+          <h2 style="color: var(--text-heading);">Welcome, ${req.session.user_name}</h2>
           ${approvalMessage}
 
           <div style="max-width: 400px;">
@@ -176,19 +264,21 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
               <form action="/join-team" method="GET"><button type="submit" class="secondary-btn">Join Team</button></form>
             ` : isApproved ? `<p><strong>✓ Active Member of: ${req.session.team}</strong></p>` : ''}
 
-            ${req.session.admin ? `<form action="/team-requests" method="GET"><button type="submit" style="background:#805ad5; margin-top:10px;">Manage Team Requests</button></form>` : ''}
+            ${req.session.admin ? `<form action="/team-requests" method="GET"><button type="submit" style="background:#805ad5; margin-top:4px;">Manage Team Requests</button></form>` : ''}
             
-            <hr style="margin: 20px 0; border: 0; border-top: 1px solid #e2e8f0;">
+            <hr style="margin: 20px 0; border: 0; border-top: 1px solid var(--border-color);">
             <form action="/email" method="GET"><button type="submit" class="secondary-btn">Reset Password</button></form>
             <form action="/health" method="GET"><button type="submit" class="secondary-btn">System Health</button></form>
-            <form action="/auth/logout" method="POST"><button type="submit" style="background:#e53e3e; margin-top:10px;">Log Out</button></form>
+            <form action="/auth/logout" method="POST"><button type="submit" style="background:#e53e3e; margin-top:4px;">Log Out</button></form>
           </div>
         </div>
 
         <div class="sidebar">
-          <h3 style="margin-top:0; font-size: 1.1rem; color: #2d3748;">${req.session.team ? 'Team: ' + req.session.team : 'No Team'}</h3>
+          <h3 style="margin-top:0; font-size: 1.1rem; color: var(--text-heading);">${req.session.team ? 'Team: ' + req.session.team : 'No Team'}</h3>
           <label>MEMBERS</label>
-          <ul style="list-style:none; padding:0;">${memberListHtml || '<li style="color:#a0aec0; font-size:0.9rem;">No members visible</li>'}</ul>
+          <ul style="list-style:none; padding:0;">
+            ${memberListHtml || `<li style="color: var(--text-muted); font-size:0.9rem;">No members visible</li>`}
+          </ul>
         </div>
 
         <script>
@@ -290,11 +380,62 @@ app.get('/email', (req, res) => {
   </body></html>`);
 });
 
+app.get('/email-sent', (req, res) => {
+  res.send(`
+    <html>
+      <head>
+        ${commonStyles}
+        <style>
+          .success-icon {
+            font-size: 3rem;
+            color: #48bb78;
+            margin-bottom: 1rem;
+          }
+          .instruction-box {
+            background: #f7fafc;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            text-align: left;
+            font-size: 0.9rem;
+            color: #4a5568;
+            border: 1px solid #e2e8f0;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="card" style="text-align: center;">
+          <div class="success-icon">✉️</div>
+          <h2>Check Your Email</h2>
+          <p style="color: #718096;">We've sent a password reset link to the email address provided.</p>
+          
+          <div class="instruction-box">
+            <strong>Next Steps:</strong>
+            <ul style="margin: 10px 0 0 20px; padding: 0;">
+              <li>Click the link in the email to reset your password.</li>
+              <li>Check your <strong>Spam</strong> folder if you don't see it.</li>
+              <li>The link will expire in 1 hour.</li>
+            </ul>
+          </div>
+
+          <form action="/login" method="GET">
+            <button type="submit">Back to Login</button>
+          </form>
+          
+          <p style="font-size: 0.8rem; margin-top: 15px; color: #a0aec0;">
+            Didn't get the email? <a href="/email" style="color: #3182ce; text-decoration: none;">Try again</a>
+          </p>
+        </div>
+      </body>
+    </html>
+  `);
+});
+
 app.get('/reset-password', (req, res) => {
   const tokenFromEmail = req.query.token;
   res.send(`<html><head>${commonStyles}</head><body>
     <div class="card">
-      <form method="POST" action="/reset-confirmation">
+      <form method="POST" action="/email/reset-password">
         <h2>Set New Password</h2>
         <input type="hidden" name="token" value="${tokenFromEmail}" />
         
@@ -322,8 +463,7 @@ app.get('/reset-confirmation', (req, res) => {
 
 app.get('/profile', isAuthenticated, async (req, res) => {
     try {
-        const targetUserId = req.query.user_id; // Grabs the ID from the hidden form in the 3-dot menu
-
+        const targetUserId = req.query.user_id;
         const userResult = await pool.query(
             `SELECT u.user_name, u.email, u.is_approved, t.name as team_name 
              FROM user_account u 
@@ -332,12 +472,10 @@ app.get('/profile', isAuthenticated, async (req, res) => {
             [targetUserId]
         );
 
-        if (userResult.rows.length === 0) {
-            return res.status(404).send("User not found");
-        }
-
+        if (userResult.rows.length === 0) return res.status(404).send("User not found");
         const user = userResult.rows[0];
 
+        // Using standard quotes inside the send string to avoid parsing errors
         res.send(`
         <html>
             <head>
@@ -350,22 +488,17 @@ app.get('/profile', isAuthenticated, async (req, res) => {
                         justify-content: center; font-size: 2rem; margin: 0 auto 1rem;
                         text-transform: uppercase;
                     }
-                    .info-group { margin-bottom: 1.5rem; border-bottom: 1px solid #edf2f7; padding-bottom: 0.5rem; }
-                    .info-label { font-size: 0.75rem; color: #a0aec0; text-transform: uppercase; letter-spacing: 0.05em; }
-                    .info-value { font-size: 1.1rem; color: #2d3748; font-weight: 500; }
-                    .badge { 
-                        display: inline-block; padding: 4px 12px; border-radius: 99px; 
-                        font-size: 0.8rem; font-weight: 600; 
-                    }
-                    .badge-approved { background: #c6f6d5; color: #22543d; }
-                    .badge-pending { background: #feebc8; color: #744210; }
+                    .badge { display: inline-block; padding: 4px 12px; border-radius: 99px; font-size: 0.8rem; font-weight: 600; }
                 </style>
             </head>
             <body>
                 <div class="card" style="max-width: 500px;">
                     <div class="profile-header">
                         <div class="avatar-circle">${user.user_name.charAt(0)}</div>
-                        <h2>${user.user_name}</h2>
+                        <h2 style="color: var(--text-heading);">${user.user_name}</h2>
+                        <span class="badge ${user.is_approved ? '': 'badge-pending'}">
+                            ${user.is_approved ? "" : '⏳ Pending Approval'}
+                        </span>
                     </div>
 
                     <div class="info-group">
@@ -387,8 +520,7 @@ app.get('/profile', isAuthenticated, async (req, res) => {
             </body>
         </html>`);
     } catch (err) {
-        console.error(err);
-        res.status(500).send("Error fetching profile");
+        res.status(500).send("Error loading profile");
     }
 });
 

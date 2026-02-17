@@ -1,12 +1,12 @@
 import express from 'express'
-import { acceptUserSignup, rejectUserSignup } from '../controllers/admin.controller.js'
+import { acceptUserRequest, rejectUserRequest } from '../controllers/admin.controller.js'
 
 const router = express.Router()
 
 // POST /admin/approve-member
-router.post('/approve-member', acceptUserSignup);
+router.post('/approve-member', acceptUserRequest);
 
 // POST /admin/reject-member
-router.post('/reject-member', rejectUserSignup);
+router.post('/reject-member', rejectUserRequest);
 
 export default router;
