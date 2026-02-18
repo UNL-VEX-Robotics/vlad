@@ -9,17 +9,28 @@ const EMAIL_REGEX = /\w*@(?:\w*.)+/;
 
 // User Signup
 export async function signup(req, res) {
-  const { user_name, email, password } = req.body;
+  const { user_name, email, password, confirmPassword } = req.body;
+
+  if (password.length < 8){
+    return res.redirect(`/signup?error=Password%20must%20be%20at%20least%208%20characters`);
+  }
+
+  if (password !== confirmPassword) {
+    // Redirect back with the error and the token (so they don't lose their place)
+    return res.redirect(`/signup?error=Passwords%20do%20not%20match`);
+  }
 
   // Check if all fields are filled in
   if (!user_name || !email || !password) {
-    return res.status(400).json({ error: 'Missing required fields.' });
+    return res.redirect(`/signup?error=Missing%20field`);
+    //return res.status(400).json({ error: 'Missing required fields.' });
   }
 
   // Check if email is valid
   const clean_email = email.trim().toLowerCase();
   if (!EMAIL_REGEX.test((clean_email))) {
-    return res.status(400).json({ error: 'Invalid email.' })
+    return res.redirect(`/signup?error=Invalid%20email`);
+    //return res.status(400).json({ error: 'Invalid email.' })
   }
 
   try {
@@ -77,8 +88,10 @@ export async function login(req, res) {
   const { email, password } = req.body;
 
   // Check if all fields are filled in
+
   if (!email || !password) {
-    return res.status(400).json({ error: 'Missing required fields.' });
+    return res.redirect(`/login?error=Missing%20field`);
+    //return res.status(400).json({ error: 'Missing required fields.' });
   }
 
   try {
@@ -91,7 +104,8 @@ export async function login(req, res) {
     const user = userResult.rows[0];
 
     if (!user) {
-      return res.status(400).json({ error: 'Invalid credentials' });
+      return res.redirect(`/login?error=Invalid%20Credentials`);
+      //return res.status(400).json({ error: 'Invalid credentials' });
     }
     req.session.admin = false;
     req.session.team = null;
@@ -113,7 +127,8 @@ export async function login(req, res) {
       req.session.save((err) => {
         if (err) {
           console.error("Session Save Error:", err);
-          return res.status(500).send("Error saving session");
+          return res.redirect(`/login?error=Server%20Error`);
+          //return res.status(500).send("Error saving session");
         }
         res.redirect('/dashboard');
       });
@@ -123,11 +138,13 @@ export async function login(req, res) {
       // });
     }
     else {
-      res.status(400).json({ error: 'Invalid credentials' })
+      return res.redirect(`/login?error=Invalid%20Credentials`);
+      //res.status(400).json({ error: 'Invalid credentials' })
     }
   }
   catch (err) {
-    res.status(500).json({ error: 'Server error' });
+    return res.redirect(`/login?error=Server%20Error`);
+    //res.status(500).json({ error: 'Server error' });
   }
 }
 
@@ -187,7 +204,6 @@ export async function createTeam(req, res) {
     client.release();
   }
 }
-
 
 // Allows a user to request to join a team after being rejected or removed from a team
 export async function teamRequest(req, res) {

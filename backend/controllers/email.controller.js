@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import bcrypt from 'bcrypt';
 
 const SALT_ROUNDS = 12;
+const EMAIL_REGEX = /\w*@(?:\w*.)+/;
 
 const verbose = false;
 
@@ -20,20 +21,37 @@ const transporter = nodemailer.createTransport({
 })
 
 // Send a reset password email to the user
-// TODO: remove the console logs 
 export async function sendResetPasswordEmail(req, res) {
   const resetToken = crypto.randomBytes(32).toString('hex');
   const expires = new Date(Date.now() + 3600000); // 1 hour later
+  const { to } = req.body;
+  
 
   try {
+    // Check if email is valid
+    const clean_email = to.trim().toLowerCase();
+    if (!EMAIL_REGEX.test((clean_email))) {
+      return res.redirect(`/email?error=Invalid%20Email`);
+    }
+
+    const results = await pool.query(
+      `
+      SELECT id FROM user_account WHERE email = $1
+      `,
+      [to]
+    );
+
+    if (!(results.rows[0])){
+      return res.redirect(`/email?error=Invalid%20Email`);
+    }
+
     await pool.query(
       `
       UPDATE user_account SET reset_token = $1, reset_expiry = $2 WHERE email = $3
       `,
-      [resetToken, expires, req.body.to]
+      [resetToken, expires, to]
     );
 
-    const { to } = req.body;
     const host = req.get('host');
     const protocol = req.protocol;
     const resetLink = `${protocol}://${host}/reset-password?token=${resetToken}`;
@@ -89,9 +107,17 @@ export async function sendResetPasswordEmail(req, res) {
 }
 
 // Reset the user's password using the provided token
-// TODO: remove console logs
 export async function resetPassword(req, res) {
-  const { token, newPassword } = req.body;
+  const { token, newPassword, confirmPassword } = req.body;
+
+  if (newPassword !== confirmPassword) {
+    // Redirect back with the error and the token (so they don't lose their place)
+    return res.redirect(`/reset-password?token=${token}&error=Passwords%20do%20not%20match`);
+  }
+
+  if (newPassword.length < 8) {
+    return res.redirect(`/reset-password?token=${token}&error=Password%20must%20be%20at%20least%208%20characters`)
+  }
 
   try {
     // Find the user "connected" to this specific token
@@ -99,8 +125,6 @@ export async function resetPassword(req, res) {
       "SELECT * FROM user_account WHERE reset_token = $1 AND reset_expiry > NOW()",
       [token]
     );
-
-    console.log("User found for token: ", user.rows);
 
     if (user.rows.length === 0) {
       return res.status(400).json({ error: 'Invalid or expired token' });

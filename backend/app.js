@@ -13,6 +13,7 @@ const PostgresStore = pgSession(session);
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
+
 app.use(session({
   store: new PostgresStore({
     pool: pool,
@@ -28,6 +29,7 @@ app.use(session({
   }
 }));
 
+// Checks if a users has a session before they can access the specified page
 const isAuthenticated = (req, res, next) => {
   if (req.session && req.session.user_id) {
     return next();
@@ -37,6 +39,7 @@ const isAuthenticated = (req, res, next) => {
   }
 };
 
+// Checks if the user is an Admin on their team before they can access the specified page
 const isAdmin = (req, res, next) => {
   if (req.session && req.session.admin) {
     return next();
@@ -62,6 +65,8 @@ app.get('/health', async (req, res) => {
   }
 });
 
+// This holds the styles for the HTML including a light and dark mode that go by 
+// what the users system settings are this is here to making changing application looks
 const commonStyles = `
 <style>
     :root {
@@ -128,14 +133,27 @@ const commonStyles = `
 
 // --- ROUTES ---
 
+// Signup Page
 app.get('/signup', (req, res) => {
+  const error = req.query.error; // Catch the error message from the URL
+
+  let errorMessageHtml = '';
+  if (error) {
+    errorMessageHtml = `
+      <div style="color: #e53e3e; background: #fff5f5; border: 1px solid #feb2b2; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 0.9rem; text-align: center;">
+        ${error}
+      </div>
+    `;
+  }
   res.send(`<html><head>${commonStyles}</head><body>
         <div class="card">
             <form method="POST" action="/auth/signup">
                 <h2>Sign Up</h2>
+                ${errorMessageHtml}
                 <label>Username</label><input name="user_name" required />
                 <label>Email</label><input name="email" type="email" required />
                 <label>Password</label><input type="password" name="password" required />
+                <label>Confirm Password</label><input type="password" name="confirmPassword" required />
                 <input type="submit" value="Create Account" />
             </form>
             <form method="GET" action="/login"><button type="submit" class="secondary-btn">Already have an account? Login</button></form>
@@ -143,11 +161,24 @@ app.get('/signup', (req, res) => {
     </body></html>`);
 });
 
+// Login Page
 app.get('/login', (req, res) => {
+  const error = req.query.error; // Catch the error message from the URL
+
+  let errorMessageHtml = '';
+  if (error) {
+    errorMessageHtml = `
+      <div style="color: #e53e3e; background: #fff5f5; border: 1px solid #feb2b2; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 0.9rem; text-align: center;">
+        ${error}
+      </div>
+    `;
+  }
+
   res.send(`<html><head>${commonStyles}</head><body>
         <div class="card">
             <form method="POST" action="/auth/login">
                 <h2>Log In</h2>
+                ${errorMessageHtml}
                 <label>Email</label><input name="email" required />
                 <label>Password</label><input type="password" name="password" required />
                 <input type="submit" value="Login" />
@@ -160,6 +191,7 @@ app.get('/login', (req, res) => {
     </body></html>`);
 });
 
+// Main Dashboard Page
 app.get('/dashboard', isAuthenticated, async (req, res) => {
   try {
     let memberListHtml = '';
@@ -296,6 +328,71 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
   }
 });
 
+// Page with a profile for the specifed user
+app.get('/profile', isAuthenticated, async (req, res) => {
+  try {
+    const targetUserId = req.query.user_id;
+    const userResult = await pool.query(
+      `SELECT u.user_name, u.email, u.is_approved, t.name as team_name 
+             FROM user_account u 
+             LEFT JOIN team t ON u.team_id = t.id 
+             WHERE u.id = $1`,
+      [targetUserId]
+    );
+
+    if (userResult.rows.length === 0) return res.status(404).send("User not found");
+    const user = userResult.rows[0];
+
+    // Using standard quotes inside the send string to avoid parsing errors
+    res.send(`
+        <html>
+            <head>
+                ${commonStyles}
+                <style>
+                    .profile-header { text-align: center; margin-bottom: 2rem; }
+                    .avatar-circle { 
+                        width: 80px; height: 80px; background: #3182ce; color: white; 
+                        border-radius: 50%; display: flex; align-items: center; 
+                        justify-content: center; font-size: 2rem; margin: 0 auto 1rem;
+                        text-transform: uppercase;
+                    }
+                    .badge { display: inline-block; padding: 4px 12px; border-radius: 99px; font-size: 0.8rem; font-weight: 600; }
+                </style>
+            </head>
+            <body>
+                <div class="card" style="max-width: 500px;">
+                    <div class="profile-header">
+                        <div class="avatar-circle">${user.user_name.charAt(0)}</div>
+                        <h2 style="color: var(--text-heading);">${user.user_name}</h2>
+                        <span class="badge ${user.is_approved ? '' : 'badge-pending'}">
+                            ${user.is_approved ? "" : '⏳ Pending Approval'}
+                        </span>
+                    </div>
+
+                    <div class="info-group">
+                        <div class="info-label">Email Address</div>
+                        <div class="info-value">${user.email}</div>
+                    </div>
+
+                    <div class="info-group">
+                        <div class="info-label">Current Team</div>
+                        <div class="info-value">${user.team_name || 'No Team Assigned'}</div>
+                    </div>
+
+                    <div style="margin-top: 2rem;">
+                        <a href="/dashboard" style="text-decoration: none;">
+                            <button type="button" class="secondary-btn">Back to Dashboard</button>
+                        </a>
+                    </div>
+                </div>
+            </body>
+        </html>`);
+  } catch (err) {
+    res.status(500).send("Error loading profile");
+  }
+});
+
+// Where the requests to join the team are located for admins
 app.get('/team-requests', isAdmin, async (req, res) => {
   try {
     const requests = await pool.query(
@@ -323,6 +420,7 @@ app.get('/team-requests', isAdmin, async (req, res) => {
   } catch (err) { res.status(500).send("Error loading requests."); }
 });
 
+// Team Creation Page
 app.get('/create-team', isAuthenticated, (req, res) => {
   res.send(`<html><head>${commonStyles}</head><body>
     <div class="card">
@@ -342,6 +440,7 @@ app.get('/create-team', isAuthenticated, (req, res) => {
   </body></html>`);
 });
 
+// Page to request to join a team
 app.get('/join-team', isAuthenticated, (req, res) => {
   res.send(`<html><head>${commonStyles}</head><body>
     <div class="card">
@@ -361,11 +460,23 @@ app.get('/join-team', isAuthenticated, (req, res) => {
   </body></html>`);
 });
 
+// Page to collect email before a reset password email is sent
 app.get('/email', (req, res) => {
+  const error = req.query.error; // Catch the error message from the URL
+
+  let errorMessageHtml = '';
+  if (error) {
+    errorMessageHtml = `
+      <div style="color: #e53e3e; background: #fff5f5; border: 1px solid #feb2b2; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 0.9rem; text-align: center;">
+        ${error}
+      </div>
+    `;
+  }
   res.send(`<html><head>${commonStyles}</head><body>
     <div class="card">
       <form method="POST" action="/email/send">
         <h2>Reset Password</h2>
+        ${errorMessageHtml}
         <p style="color: #718096; font-size: 0.9rem; margin-bottom: 20px;">
           Enter your email address and we'll send you a recovery link.
         </p>
@@ -380,6 +491,7 @@ app.get('/email', (req, res) => {
   </body></html>`);
 });
 
+// Where you are sent after email is sent to user
 app.get('/email-sent', (req, res) => {
   res.send(`
     <html>
@@ -431,16 +543,32 @@ app.get('/email-sent', (req, res) => {
   `);
 });
 
+// Page where you reset your password accessed through link with specified token
 app.get('/reset-password', (req, res) => {
   const tokenFromEmail = req.query.token;
+  const error = req.query.error; // Catch the error message from the URL
+
+  let errorMessageHtml = '';
+  if (error) {
+    errorMessageHtml = `
+      <div style="color: #e53e3e; background: #fff5f5; border: 1px solid #feb2b2; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 0.9rem; text-align: center;">
+        ${error}
+      </div>
+    `;
+  }
+
   res.send(`<html><head>${commonStyles}</head><body>
     <div class="card">
       <form method="POST" action="/email/reset-password">
         <h2>Set New Password</h2>
+        ${errorMessageHtml}
         <input type="hidden" name="token" value="${tokenFromEmail}" />
         
         <label>New Password</label>
         <input type="password" name="newPassword" placeholder="Min. 8 characters" required />
+        
+        <label>Confirm Password</label>
+        <input type="password" name="confirmPassword" placeholder="Repeat password" required />
         
         <input type="submit" value="Update Password" />
       </form>
@@ -448,6 +576,7 @@ app.get('/reset-password', (req, res) => {
   </body></html>`);
 });
 
+// Where you are sent after password is reset
 app.get('/reset-confirmation', (req, res) => {
   res.send(`<html><head>${commonStyles}</head><body>
     <div class="card" style="text-align: center;">
@@ -459,69 +588,6 @@ app.get('/reset-confirmation', (req, res) => {
       </form>
     </div>
   </body></html>`);
-});
-
-app.get('/profile', isAuthenticated, async (req, res) => {
-    try {
-        const targetUserId = req.query.user_id;
-        const userResult = await pool.query(
-            `SELECT u.user_name, u.email, u.is_approved, t.name as team_name 
-             FROM user_account u 
-             LEFT JOIN team t ON u.team_id = t.id 
-             WHERE u.id = $1`,
-            [targetUserId]
-        );
-
-        if (userResult.rows.length === 0) return res.status(404).send("User not found");
-        const user = userResult.rows[0];
-
-        // Using standard quotes inside the send string to avoid parsing errors
-        res.send(`
-        <html>
-            <head>
-                ${commonStyles}
-                <style>
-                    .profile-header { text-align: center; margin-bottom: 2rem; }
-                    .avatar-circle { 
-                        width: 80px; height: 80px; background: #3182ce; color: white; 
-                        border-radius: 50%; display: flex; align-items: center; 
-                        justify-content: center; font-size: 2rem; margin: 0 auto 1rem;
-                        text-transform: uppercase;
-                    }
-                    .badge { display: inline-block; padding: 4px 12px; border-radius: 99px; font-size: 0.8rem; font-weight: 600; }
-                </style>
-            </head>
-            <body>
-                <div class="card" style="max-width: 500px;">
-                    <div class="profile-header">
-                        <div class="avatar-circle">${user.user_name.charAt(0)}</div>
-                        <h2 style="color: var(--text-heading);">${user.user_name}</h2>
-                        <span class="badge ${user.is_approved ? '': 'badge-pending'}">
-                            ${user.is_approved ? "" : '⏳ Pending Approval'}
-                        </span>
-                    </div>
-
-                    <div class="info-group">
-                        <div class="info-label">Email Address</div>
-                        <div class="info-value">${user.email}</div>
-                    </div>
-
-                    <div class="info-group">
-                        <div class="info-label">Current Team</div>
-                        <div class="info-value">${user.team_name || 'No Team Assigned'}</div>
-                    </div>
-
-                    <div style="margin-top: 2rem;">
-                        <a href="/dashboard" style="text-decoration: none;">
-                            <button type="button" class="secondary-btn">Back to Dashboard</button>
-                        </a>
-                    </div>
-                </div>
-            </body>
-        </html>`);
-    } catch (err) {
-        res.status(500).send("Error loading profile");
-    }
 });
 
 export default app;
