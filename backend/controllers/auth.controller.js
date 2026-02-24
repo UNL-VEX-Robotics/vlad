@@ -6,6 +6,7 @@ import pgSession from 'connect-pg-simple'
 
 const SALT_ROUNDS = 12;
 const EMAIL_REGEX = /\w*@(?:\w*.)+/;
+const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 
 // User Signup
 export async function signup(req, res) {
@@ -18,6 +19,10 @@ export async function signup(req, res) {
   if (password !== confirmPassword) {
     // Redirect back with the error and the token (so they don't lose their place)
     return res.redirect(`/signup?error=Passwords%20do%20not%20match`);
+  }
+
+  if (!passwordRegex.test(password)){
+    return res.redirect('/signup?error=Password%20does%20not%20requirements');
   }
 
   // Check if all fields are filled in

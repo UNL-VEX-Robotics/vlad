@@ -5,6 +5,7 @@ import bcrypt from 'bcrypt';
 
 const SALT_ROUNDS = 12;
 const EMAIL_REGEX = /\w*@(?:\w*.)+/;
+const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 
 const verbose = false;
 
@@ -118,6 +119,10 @@ export async function resetPassword(req, res) {
 
   if (newPassword.length < 8) {
     return res.redirect(`/reset-password?token=${token}&error=Password%20must%20be%20at%20least%208%20characters`)
+  }
+
+  if (!passwordRegex.test(newPassword)){
+    return res.redirect('/reset-password?token=${token}&error=Password%20does%20not%20requirements');
   }
 
   try {

@@ -1,7 +1,7 @@
 import express from 'express';
 import pool from './db.js';
 import authRoutes from './routes/auth.js';
-import emailRoutes from './routes/email.js';
+import emailRoutes from './routes/reset.js';
 import adminRoutes from './routes/admin.js';
 import session from 'express-session';
 import pgSession from 'connect-pg-simple';
@@ -14,13 +14,12 @@ app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 
-//TODO: make a session rather than vlad_secret_key O-O
 app.use(session({
   store: new PostgresStore({
     pool: pool,
     tableName: 'session'
   }),
-  secret: process.env.SESSION_SECRET || 'vlad_secret_key', 
+  secret: process.env.SESSION_SECRET || 'vlad_secret_key',
   resave: false,
   saveUninitialized: false,
   cookie: {
@@ -50,11 +49,14 @@ const isAdmin = (req, res, next) => {
   }
 };
 
-app.use('/auth', authRoutes);
+const auth = '/auth';
+app.use(auth, authRoutes);
 
-app.use('/email', emailRoutes);
+const reset = '/reset';
+app.use(reset, emailRoutes);
 
-app.use('/admin', adminRoutes);
+const admin = '/admin';
+app.use(admin, adminRoutes);
 
 
 app.get('/health', async (req, res) => {
@@ -92,6 +94,9 @@ const commonStyles = `
         --badge-approved-text: #22543d;
         --badge-pending-bg: #fff5f5;
         --badge-pending-text: #c53030;
+        --alert-bg: #fff5f5;
+        --alert-text: #c53030;
+        --alert-border: #feb2b2;
     }
 
     @media (prefers-color-scheme: dark) {
@@ -115,6 +120,9 @@ const commonStyles = `
             --badge-approved-text: #9ae6b4;
             --badge-pending-bg: #441919;
             --badge-pending-text: #feb2b2;
+            --alert-bg: #822727; /* Deep blood red */
+            --alert-text: #ffffff;
+            --alert-border: #e53e3e;
         }
     }
 
@@ -150,6 +158,26 @@ const commonStyles = `
     .password-wrapper input { margin-bottom: 0; padding-right: 60px; }
     .password-toggle-text { position: absolute; right: 15px; font-size: 0.7rem; font-weight: 800; color: var(--accent-red); cursor: pointer; user-select: none; text-transform: uppercase; }
     .password-toggle-text:hover { color: var(--accent-hover); }
+
+    .alert-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 20px;
+    text-align: center;
+    line-height: 1.4;
+    transition: all 0.3s ease;
+}
+
+  .alert-box {
+    background: var(--alert-bg);
+    color: var(--alert-text);
+    border: 1px solid var(--alert-border);
+  }
 </style>
 `;
 
@@ -162,19 +190,25 @@ app.get('/signup', (req, res) => {
   let errorMessageHtml = '';
   if (error) {
     errorMessageHtml = `
-      <div style="color: #e53e3e; background: #fff5f5; border: 1px solid #feb2b2; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 0.9rem; text-align: center;">
-        ${error}
-      </div>
-    `;
+    <div class="alert-box">
+      ${error}
+    </div>
+  `;
   }
   res.send(`<html><head>${commonStyles}</head><body>
         <div class="card">
-            <form method="POST" action="/auth/signup">
+            <form method="POST" action=${auth}/signup">
                 <h2>Sign Up</h2>
                 ${errorMessageHtml}
                 <label>Username</label><input name="user_name" placeholder="Username" required />
                 <label>Email</label><input name="email" type="email" placeholder="Email" required />
                 <label>Password</label>
+                <ul style="padding-left: 18px; padding-bottom: 7px; margin: 0; font-size: 0.7rem;">
+                  <li>Minimum 8 characters</li>
+                  <li>Include at least one uppercase letter</li>
+                  <li>Include at least one number</li>
+                  <li>Include at least one special character (!@#$)</li>
+                </ul>
                 <div class="password-wrapper">
                   <input type="password" id='pass' name="password" placeholder="Password" required />
                   <span class="password-toggle-text" onclick="toggle('pass', this)">Show</span>
@@ -211,15 +245,15 @@ app.get('/login', (req, res) => {
   let errorMessageHtml = '';
   if (error) {
     errorMessageHtml = `
-      <div style="color: #e53e3e; background: #fff5f5; border: 1px solid #feb2b2; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 0.9rem; text-align: center;">
-        ${error}
-      </div>
-    `;
+    <div class="alert-box">
+      ${error}
+    </div>
+  `;
   }
 
   res.send(`<html><head>${commonStyles}</head><body>
         <div class="card">
-            <form method="POST" action="/auth/login">
+            <form method="POST" action="${auth}/login">
                 <h2>Log In</h2>
                 ${errorMessageHtml}
                 <label>Email</label><input name="email" placeholder="Email" required />
@@ -361,7 +395,7 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
             <hr style="margin: 20px 0; border: 0; border-top: 1px solid var(--border-color);">
             <form action="/email" method="GET"><button type="submit" class="secondary-btn">Reset Password</button></form>
             <form action="/health" method="GET"><button type="submit" class="secondary-btn">System Health</button></form>
-            <form action="/auth/logout" method="POST"><button type="submit" style="background:#e53e3e; margin-top:4px;">Log Out</button></form>
+            <form action="${auth}/logout" method="POST"><button type="submit" style="background:#e53e3e; margin-top:4px;">Log Out</button></form>
           </div>
         </div>
 
@@ -454,16 +488,16 @@ app.get('/profile', isAuthenticated, async (req, res) => {
 
 // Where the requests to join the team are located for admins
 app.get('/team-requests', isAuthenticated, isAdmin, async (req, res) => {
-    try {
-        const requests = await pool.query(
-            `SELECT u.id, u.user_name, u.email 
+  try {
+    const requests = await pool.query(
+      `SELECT u.id, u.user_name, u.email 
              FROM user_account u 
              JOIN team t ON u.team_id = t.id 
              WHERE t.name = $1 AND u.is_approved = FALSE`,
-            [req.session.team]
-        );
+      [req.session.team]
+    );
 
-        const requestListHtml = requests.rows.map(r => `
+    const requestListHtml = requests.rows.map(r => `
             <div class="request-panel">
                 <div class="request-details">
                     <div class="info-label">User</div>
@@ -471,11 +505,11 @@ app.get('/team-requests', isAuthenticated, isAdmin, async (req, res) => {
                     <div style="font-size: 0.8rem; color: var(--text-muted);">${r.email}</div>
                 </div>
                 <div class="request-actions">
-                    <form action="/admin/approve-member" method="POST">
+                    <form action="${admin}/approve-member" method="POST">
                         <input type="hidden" name="user_id" value="${r.id}">
                         <button type="submit" class="action-btn approve">Approve</button>
                     </form>
-                    <form action="/admin/reject-member" method="POST">
+                    <form action="${admin}/reject-member" method="POST">
                         <input type="hidden" name="user_id" value="${r.id}">
                         <button type="submit" class="action-btn reject">Reject</button>
                     </form>
@@ -483,7 +517,7 @@ app.get('/team-requests', isAuthenticated, isAdmin, async (req, res) => {
             </div>
         `).join('') || '<div class="card" style="text-align:center; color:var(--text-muted);">No pending requests.</div>';
 
-        res.send(`
+    res.send(`
         <html>
             <head>
                 ${commonStyles}
@@ -540,16 +574,16 @@ app.get('/team-requests', isAuthenticated, isAdmin, async (req, res) => {
                 ${requestListHtml}
             </body>
         </html>`);
-    } catch (err) {
-        res.status(500).send("Error loading requests");
-    }
+  } catch (err) {
+    res.status(500).send("Error loading requests");
+  }
 });
 
 // Team Creation Page
 app.get('/create-team', isAuthenticated, (req, res) => {
   res.send(`<html><head>${commonStyles}</head><body>
     <div class="card">
-      <form method="POST" action="/auth/create-team">
+      <form method="POST" action="${auth}/create-team">
         <h2>Create A New Team</h2>
         <p style="color: #718096; font-size: 0.9rem; margin-bottom: 20px;">
           As the creator, you will be the team lead and manage join requests.
@@ -569,7 +603,7 @@ app.get('/create-team', isAuthenticated, (req, res) => {
 app.get('/join-team', isAuthenticated, (req, res) => {
   res.send(`<html><head>${commonStyles}</head><body>
     <div class="card">
-      <form method="POST" action="/auth/join-team">
+      <form method="POST" action="${auth}/join-team">
         <h2>Join Team</h2>
         <label>Search Team Name</label>
         <input name="team_name" placeholder="Enter exact team name" required />
@@ -592,14 +626,14 @@ app.get('/email', (req, res) => {
   let errorMessageHtml = '';
   if (error) {
     errorMessageHtml = `
-      <div style="color: #e53e3e; background: #fff5f5; border: 1px solid #feb2b2; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 0.9rem; text-align: center;">
-        ${error}
-      </div>
-    `;
+    <div class="alert-box">
+      ${error}
+    </div>
+  `;
   }
   res.send(`<html><head>${commonStyles}</head><body>
     <div class="card">
-      <form method="POST" action="/email/send">
+      <form method="POST" action="${reset}/send">
         <h2>Reset Password</h2>
         ${errorMessageHtml}
         <p style="color: #718096; font-size: 0.9rem; margin-bottom: 20px;">
@@ -676,20 +710,26 @@ app.get('/reset-password', (req, res) => {
   let errorMessageHtml = '';
   if (error) {
     errorMessageHtml = `
-      <div style="color: #e53e3e; background: #fff5f5; border: 1px solid #feb2b2; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 0.9rem; text-align: center;">
-        ${error}
-      </div>
-    `;
+    <div class="alert-box">
+      ${error}
+    </div>
+  `;
   }
 
   res.send(`<html><head>${commonStyles}</head><body>
     <div class="card">
-      <form method="POST" action="/email/reset-password">
+      <form method="POST" action="${reset}/reset-password">
         <h2>Set New Password</h2>
         ${errorMessageHtml}
         <input type="hidden" name="token" value="${tokenFromEmail}" />
         
         <label>New Password</label>
+        <ul style="padding-left: 18px; padding-bottom: 7px; margin: 0; font-size: 0.7rem;">
+          <li>Minimum 8 characters</li>
+          <li>Include at least one uppercase letter</li>
+          <li>Include at least one number</li>
+          <li>Include at least one special character (!@#$)</li>
+        </ul>
         <div class="password-wrapper">
           <input type="password" id="newPass" name="newPassword" placeholder="Min. 8 characters" required />
           <span class="password-toggle-text" onclick="toggle('newPass', this)">Show</span>
