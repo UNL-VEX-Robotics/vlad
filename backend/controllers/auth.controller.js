@@ -40,7 +40,8 @@ export async function signup(req, res) {
       [email]
     );
     if (existingUser.rows.length > 0) {
-      return res.status(409).json({ error: 'User already exists' });
+      return res.redirect('/signup?error=User%20Already%20Exists');
+      //return res.status(409).json({ error: 'User already exists' });
     }
 
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
@@ -63,7 +64,8 @@ export async function signup(req, res) {
     // });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Server error' });
+    return res.redirect('/signup?error=Server%20Error');
+    //res.status(500).json({ error: 'Server error' });
   }
 }
 
@@ -148,11 +150,13 @@ export async function login(req, res) {
   }
 }
 
+// User logout function
 export async function logout(req, res) {
   req.session.destroy((err) => {
     if (err) {
       console.error("Logout Error:", err);
-      return res.status(500).json({ error: 'Could not log out' });
+      return res.redirect('/dashboard?error=Server%20Error');
+      //return res.status(500).json({ error: 'Could not log out' });
     }
     res.clearCookie('connect.sid');
 
@@ -174,7 +178,8 @@ export async function createTeam(req, res) {
     );
     if (teamResult.rows.length > 0) {
       await client.query('ROLLBACK');
-      return res.status(400).json({ error: 'Team already exists' });
+      return res.redirect('/create-team?error=Team%20Already%20Exists');
+      //return res.status(400).json({ error: 'Team already exists' });
     }
 
     client.query('BEGIN');
@@ -198,7 +203,8 @@ export async function createTeam(req, res) {
   catch (err) {
     await client.query('ROLLBACK');
     console.error(err);
-    res.status(500).json({ error: 'Server error' });
+    return res.redirect('/create-team?error=Server%20Error');
+    //res.status(500).json({ error: 'Server error' });
   }
   finally {
     client.release();
@@ -215,7 +221,8 @@ export async function teamRequest(req, res) {
       [team_name]
     );
     if (teamResult.rows.length === 0) {
-      return res.status(400).json({ error: 'Team not found' });
+      return res.redirect('/join-team?error=Team%20Not%20Found');
+      //return res.status(400).json({ error: 'Team not found' });
     }
     const team_id = teamResult.rows[0].id;
     await pool.query(
@@ -228,6 +235,7 @@ export async function teamRequest(req, res) {
   }
   catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Server error' });
+    return res.redirect('/join-team?error=Server%20Error');
+    //res.status(500).json({ error: 'Server error' });
   }
 }

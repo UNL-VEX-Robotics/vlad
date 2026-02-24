@@ -45,10 +45,8 @@ export async function acceptUserRequest(req, res) {
         // });
     } catch (error) {
         console.error("Error approving user:", error);
-        res.status(500).json({
-            success: false,
-            message: "Failed to approve user"
-        });
+        return res.redirect('/team-requests?error=Server%20Error');
+        //res.status(500).json({ success: false, message: "Failed to approve user" });
     }
 }
 
@@ -70,7 +68,8 @@ export async function rejectUserRequest(req, res) {
     }
     catch (error) {
         console.error("Error rejecting user:", error);
-        res.status(500).json({ success: false, message: "Failed to reject user" });
+        return res.redirect('/team-requests?error=Server%20Error');
+        //res.status(500).json({ success: false, message: "Failed to reject user" });
     }
 }
 

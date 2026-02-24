@@ -102,7 +102,8 @@ export async function sendResetPasswordEmail(req, res) {
   }
   catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Failed to send email' });
+    return res.redirect('/email?error=Server%20Error');
+    //res.status(500).json({ error: 'Failed to send email' });
   }
 }
 
@@ -127,7 +128,8 @@ export async function resetPassword(req, res) {
     );
 
     if (user.rows.length === 0) {
-      return res.status(400).json({ error: 'Invalid or expired token' });
+      return res.redirect('/email?error=Reenter%20Email');
+      //return res.status(400).json({ error: 'Invalid or expired token' });
     }
 
     // Hash the new password and update the user's password and clear the reset token
@@ -141,6 +143,7 @@ export async function resetPassword(req, res) {
   }
   catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Failed to reset password' });
+    return res.redirect('/reset-password?error=Server%20Error');
+    //res.status(500).json({ error: 'Failed to reset password' });
   }
 }

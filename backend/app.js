@@ -4,7 +4,7 @@ import authRoutes from './routes/auth.js';
 import emailRoutes from './routes/email.js';
 import adminRoutes from './routes/admin.js';
 import session from 'express-session';
-import pgSession from 'connect-pg-simple'
+import pgSession from 'connect-pg-simple';
 
 import bodyParser from "body-parser";
 
@@ -14,12 +14,13 @@ app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 
+//TODO: make a session rather than vlad_secret_key O-O
 app.use(session({
   store: new PostgresStore({
     pool: pool,
     tableName: 'session'
   }),
-  secret: process.env.SESSION_SECRET || 'vlad_secret_key',
+  secret: process.env.SESSION_SECRET || 'vlad_secret_key', 
   resave: false,
   saveUninitialized: false,
   cookie: {
@@ -55,6 +56,7 @@ app.use('/email', emailRoutes);
 
 app.use('/admin', adminRoutes);
 
+
 app.get('/health', async (req, res) => {
   try {
     await pool.query('SELECT 1');
@@ -64,6 +66,7 @@ app.get('/health', async (req, res) => {
     res.status(500).json({ status: 'error', db: 'disconnected' });
   }
 });
+
 
 // This holds the styles for the HTML including a light and dark mode that go by 
 // what the users system settings are this is here to making changing application looks
@@ -450,31 +453,96 @@ app.get('/profile', isAuthenticated, async (req, res) => {
 });
 
 // Where the requests to join the team are located for admins
-app.get('/team-requests', isAdmin, async (req, res) => {
-  try {
-    const requests = await pool.query(
-      `SELECT id, user_name, email FROM user_account 
-       WHERE team_id = (SELECT id FROM team WHERE lead_id = $1) AND is_approved = FALSE`,
-      [req.session.user_id]
-    );
+app.get('/team-requests', isAuthenticated, isAdmin, async (req, res) => {
+    try {
+        const requests = await pool.query(
+            `SELECT u.id, u.user_name, u.email 
+             FROM user_account u 
+             JOIN team t ON u.team_id = t.id 
+             WHERE t.name = $1 AND u.is_approved = FALSE`,
+            [req.session.team]
+        );
 
-    let listItems = requests.rows.length === 0 ? "<p>No pending requests.</p>" : requests.rows.map(user => `
-        <li style="background:white; padding:15px; border-radius:8px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; border:1px solid #e2e8f0;">
-            <div><strong>${user.user_name}</strong><br><small style="color:#718096">${user.email}</small></div>
-            <div>
-                <form action="/admin/approve-member" method="POST" style="display:inline;"><input type="hidden" name="user_id" value="${user.id}"><button type="submit" style="width:auto; background:#48bb78; padding:5px 15px;">Accept</button></form>
-                <form action="/admin/reject-member" method="POST" style="display:inline;"><input type="hidden" name="user_id" value="${user.id}"><button type="submit" style="width:auto; background:#f56565; padding:5px 15px;">Reject</button></form>
+        const requestListHtml = requests.rows.map(r => `
+            <div class="request-panel">
+                <div class="request-details">
+                    <div class="info-label">User</div>
+                    <div class="info-value">${r.user_name}</div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted);">${r.email}</div>
+                </div>
+                <div class="request-actions">
+                    <form action="/admin/approve-member" method="POST">
+                        <input type="hidden" name="user_id" value="${r.id}">
+                        <button type="submit" class="action-btn approve">Approve</button>
+                    </form>
+                    <form action="/admin/reject-member" method="POST">
+                        <input type="hidden" name="user_id" value="${r.id}">
+                        <button type="submit" class="action-btn reject">Reject</button>
+                    </form>
+                </div>
             </div>
-        </li>`).join('');
+        `).join('') || '<div class="card" style="text-align:center; color:var(--text-muted);">No pending requests.</div>';
 
-    res.send(`<html><head>${commonStyles}</head><body style="padding:40px;">
-        <div style="max-width:600px; margin:auto;">
-            <h2>Team Join Requests</h2>
-            <ul style="list-style:none; padding:0;">${listItems}</ul>
-            <a href="/dashboard"><button class="secondary-btn">Back to Dashboard</button></a>
-        </div>
-    </body></html>`);
-  } catch (err) { res.status(500).send("Error loading requests."); }
+        res.send(`
+        <html>
+            <head>
+                ${commonStyles}
+                <style>
+                    .request-panel {
+                        background: var(--bg-card);
+                        border: 1px solid var(--border-color);
+                        border-radius: 12px;
+                        padding: 1.5rem;
+                        max-width: 500px;
+                        margin: 1rem auto;
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                    }
+
+                    /* Override the global button width only for these actions */
+                    .request-actions {
+                        display: flex;
+                        gap: 8px;
+                    }
+                    
+                    .action-btn {
+                        width: auto !important; /* Forces button to fit text */
+                        padding: 8px 16px !important;
+                        font-size: 0.8rem !important;
+                    }
+
+                    .approve {
+                        background: #2f855a !important; /* Green for success */
+                    }
+
+                    .approve:hover {
+                        background: #276749 !important;
+                    }
+
+                    /* The reject button will naturally use var(--accent-red) from commonStyles */
+
+                    .back-nav {
+                        max-width: 500px;
+                        margin: 2rem auto 0.5rem;
+                        display: flex;
+                        align-items: center;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="back-nav">
+                    <a href="/dashboard" style="text-decoration:none; color:var(--accent-red); font-weight:700; font-size:0.9rem;">
+                        ← BACK TO DASHBOARD
+                    </a>
+                </div>
+                <h2 style="text-align:center; margin-bottom: 2rem;">Pending Requests</h2>
+                ${requestListHtml}
+            </body>
+        </html>`);
+    } catch (err) {
+        res.status(500).send("Error loading requests");
+    }
 });
 
 // Team Creation Page
