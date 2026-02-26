@@ -1,5 +1,13 @@
 import pool from '../db.js';
 
+const ROLES = {
+  PENDING: 0,
+  MEMBER: 1,
+  LEAD: 2,
+  ADMIN: 3,
+  OWNER: 4,
+}
+
 /*
 TODO: test all admin functions 
     Tested functions:
@@ -16,7 +24,7 @@ export async function getTeamUsers(req, res) {
     try {
         const adminTeamId = req.admin.team_id;
         const result = await pool.query(
-            "SELECT id, user_name, email, FROM user_account WHERE team_id = $1 AND is_approved = TRUE",
+            "SELECT id, user_name, email, FROM user_account WHERE team_id = $1 AND role != 0",
             [adminTeamId]
         );
         res.status(200).json({ success: true, users: result.rows });
@@ -27,13 +35,13 @@ export async function getTeamUsers(req, res) {
     }
 }
 
-// Accepts a user signup request by setting is_approved to true
+// Accepts a user signup request by setting role to member
 export async function acceptUserRequest(req, res) {
     const { user_id } = req.body;
     try {
         const result = await pool.query(
-            "UPDATE user_account SET is_approved = TRUE WHERE id = $1 RETURNING id, user_name, email, is_approved",
-            [user_id]
+            "UPDATE user_account SET role = $1 WHERE id = $2 RETURNING id, user_name, email, role",
+            [ROLES.MEMBER, user_id]
         );
 
         res.redirect('/team-requests');
@@ -54,7 +62,6 @@ export async function acceptUserRequest(req, res) {
 export async function rejectUserRequest(req, res) {
     const { user_id } = req.body;
     try {
-        // Dont want to delete user completely, but let them reapply to another team later need to decide how to handle this
         const result = await pool.query(
             "UPDATE user_account SET team_id = NULL WHERE id = $1 RETURNING id, user_name, email, team_id",
             [user_id]
@@ -88,8 +95,10 @@ export async function makeUserOwner(req, res) {
         }
 
         const result = await pool.query(
-            "UPDATE team SET lead_id = $1 WHERE id = (SELECT team_id FROM user_account WHERE id = $1) RETURNING id, lead_id",
-            [user_id]
+            `UPDATE team SET lead_id = $1 WHERE id = (SELECT team_id FROM user_account WHERE id = $1) RETURNING id, lead_id;
+             UPDATE user_account SET role = $2 WHERE id = $1
+            `,
+            [user_id, ROLES.OWNER]
         );
         res.status(200).json({ success: true, message: "User promoted to team owner", data: result.rows[0] });
     }

@@ -10,7 +10,6 @@ const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$
 const verbose = false;
 
 // Configure the email transporter
-// TODO: Remove debug and logger
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {

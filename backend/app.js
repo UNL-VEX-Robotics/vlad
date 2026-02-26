@@ -41,15 +41,53 @@ const isAuthenticated = (req, res, next) => {
   }
 };
 
-// Checks if the user is an Admin on their team before they can access the specified page
-const isAdmin = (req, res, next) => {
-  if (req.session && req.session.admin) {
-    return next();
+// ROLES: used to check if a user has the correct permissions to access a page based on their role on the team, stored in the session when they login or signup
+const ROLES = {
+  PENDING: 0,
+  MEMBER: 1,
+  LEAD: 2,
+  ADMIN: 3,
+  OWNER: 4,
+}
+
+// To check if the user has the correct permissions to access a page based on their role on the team
+const requireRole = (requiredRole) => {
+  return (req, res, next) => {
+    if (req.session && req.session.role >= requiredRole) {
+      next();
+    }
+    else {
+      res.redirect('/dashboard?error=Insufficient%20Permissions');
+    }
   }
-  else {
-    res.redirect('/dashboard');
-  }
-};
+}
+
+app.use(async (req, res, next) => {
+    if (req.session && req.session.user_id) {
+        try {
+            // Fetch multiple updated fields from the DB
+            const result = await pool.query(
+                'SELECT role, user_name, team_id FROM user_account WHERE id = $1', 
+                [req.session.user_id]
+            );
+
+            if (result.rows.length > 0) {
+                const user = result.rows[0];
+                
+                // Sync all relevant variables to the session
+                req.session.role = user.role;
+                req.session.user_name = user.user_name; // Syncs name changes
+                req.session.team_id = user.team_id;     // Syncs team switches
+            }
+        } catch (err) {
+            console.error("Session sync error:", err);
+        }
+    }
+    next();
+});
+
+
+// --- ROUTES ---
 
 const auth = '/auth';
 app.use(auth, authRoutes);
@@ -350,19 +388,16 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
     let subteamHtml = '';
     let approvalMessage = '';
 
-    const userCheck = await pool.query(
-      `SELECT is_approved, team_id FROM user_account WHERE id = $1`,
-      [req.session.user_id]
-    );
-    const isApproved = userCheck.rows[0]?.is_approved;
-    const teamIdFromDb = userCheck.rows[0]?.team_id;
+    const userRole = req.session.role;
+    const teamId = req.session.team_id;
+    const isApproved = userRole > 0;
 
     if (req.session.team && isApproved) {
       // 1. Get Members
       const membersResult = await pool.query(
         `SELECT id, user_name FROM user_account 
           WHERE team_id = (SELECT id FROM team WHERE name = $1) 
-          AND is_approved = TRUE`,
+          AND role != 0`,
         [req.session.team]
       );
       memberListHtml = membersResult.rows.map(m => `
@@ -380,12 +415,12 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
       // 2. Get Subteams
       const subteamsResult = await pool.query(
         `SELECT id, name FROM subteam WHERE team_id = $1`,
-        [teamIdFromDb]
+        [teamId]
       );
       subteamHtml = subteamsResult.rows.map(s => `
         <div class="subteam-card">
           <div style="font-weight: 700; color: var(--text-heading);">${s.name}</div>
-          ${req.session.admin ? `
+          ${userRole > 2 ? `
           <div class="menu-container">
             <button class="dot-btn" onclick="toggleMenu(event, 'sub-${s.id}')">⋮</button>
             <div id="sub-${s.id}" class="dropdown-menu">
@@ -394,7 +429,7 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
             </div>
           </div>` : ''}
         </div>`).join('');
-    } else if (req.session.team && !isApproved && teamIdFromDb !== null) {
+    } else if (req.session.team && !isApproved && teamId !== null) {
       approvalMessage = `<div style="background: var(--badge-pending-bg); border: 1px solid var(--border-color); padding: 15px; border-radius: 8px; color: var(--badge-pending-text); margin-bottom: 20px;">⏳ Waiting for team lead approval...</div>`;
     }
 
@@ -444,7 +479,7 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
           <h2 style="color: var(--text-heading);">Dashboard</h2>
           ${approvalMessage}
 
-          ${(!req.session.team || teamIdFromDb === null) ? `
+          ${(!req.session.team || teamId === null) ? `
             <div class="card" style="margin:0; max-width:400px;">
               <h3>Get Started</h3>
               <form action="/create-team" method="GET"><button type="submit">Create Team</button></form>
@@ -454,7 +489,7 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
             <h3 style="color: var(--text-muted); font-size: 0.9rem; text-transform: uppercase;">Subteams</h3>
             <div class="subteam-grid">
               ${subteamHtml || `<div class="subteam-card" style="color:var(--text-muted);">No subteams created yet.</div>`}
-              ${req.session.admin ? `
+              ${userRole > 2 ? `
                 <a href="/create-subteam" style="text-decoration:none;">
                   <div class="subteam-card" style="border: 2px dashed var(--border-color); justify-content:center; color: var(--accent-red); cursor:pointer;">
                     + Create Subteam
@@ -470,7 +505,7 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
             ${req.session.team ? req.session.team : 'No Team'}
           </h3>
           
-          ${req.session.admin ? `
+          ${userRole > 2 ? `
             <form action="/team-requests" method="GET">
               <button type="submit" class="manage-btn">Manage Requests</button>
             </form>
@@ -519,17 +554,27 @@ app.get('/profile', isAuthenticated, async (req, res) => {
   try {
     const targetUserId = req.query.user_id;
     const userResult = await pool.query(
-      `SELECT u.user_name, u.email, u.is_approved, t.name as team_name 
-             FROM user_account u 
-             LEFT JOIN team t ON u.team_id = t.id 
-             WHERE u.id = $1`,
+      `SELECT u.user_name, u.email, u.role, t.name as team_name 
+       FROM user_account u 
+       LEFT JOIN team t ON u.team_id = t.id 
+       WHERE u.id = $1`,
       [targetUserId]
     );
 
     if (userResult.rows.length === 0) return res.status(404).send("User not found");
     const user = userResult.rows[0];
 
-    // Using standard quotes inside the send string to avoid parsing errors
+    // Map role numbers to labels and CSS classes
+    const roleMap = {
+      0: { label: '⏳ Pending Approval', class: 'badge-pending' },
+      1: { label: 'Member', class: 'badge-member' },
+      2: { label: 'Subteam Lead', class: 'badge-lead' },
+      3: { label: 'Admin', class: 'badge-admin' },
+      4: { label: 'Owner', class: 'badge-owner' }
+    };
+
+    const currentRole = roleMap[user.role] || { label: 'Unknown', class: 'badge-pending' };
+
     res.send(`
         <html>
             <head>
@@ -537,21 +582,33 @@ app.get('/profile', isAuthenticated, async (req, res) => {
                 <style>
                     .profile-header { text-align: center; margin-bottom: 2rem; }
                     .avatar-circle { 
-                        width: 80px; height: 80px; background: #3182ce; color: white; 
+                        width: 80px; height: 80px; background: var(--accent-red); color: white; 
                         border-radius: 50%; display: flex; align-items: center; 
                         justify-content: center; font-size: 2rem; margin: 0 auto 1rem;
                         text-transform: uppercase;
+                        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
                     }
-                    .badge { display: inline-block; padding: 4px 12px; border-radius: 99px; font-size: 0.8rem; font-weight: 600; }
+                    .badge { display: inline-block; padding: 6px 16px; border-radius: 99px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+                    
+                    /* Role Specific Badge Colors */
+                    .badge-owner { background: var(--accent-red); color: white; }
+                    .badge-admin { background: #805ad5; color: white; } /* Purple */
+                    .badge-lead { background: #3182ce; color: white; }  /* Blue */
+                    .badge-member { background: #38a169; color: white; } /* Green */
+                    .badge-pending { background: #718096; color: white; } /* Gray */
+
+                    .info-group { margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; }
+                    .info-label { font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); letter-spacing: 1px; margin-bottom: 4px; }
+                    .info-value { font-size: 1.1rem; color: var(--text-heading); }
                 </style>
             </head>
             <body>
-                <div class="card" style="max-width: 500px;">
+                <div class="card" style="max-width: 450px; margin: 50px auto;">
                     <div class="profile-header">
                         <div class="avatar-circle">${user.user_name.charAt(0)}</div>
-                        <h2 style="color: var(--text-heading);">${user.user_name}</h2>
-                        <span class="badge ${user.is_approved ? '' : 'badge-pending'}">
-                            ${user.is_approved ? "" : '⏳ Pending Approval'}
+                        <h2 style="color: var(--text-heading); margin-bottom: 8px;">${user.user_name}</h2>
+                        <span class="badge ${currentRole.class}">
+                            ${currentRole.label}
                         </span>
                     </div>
 
@@ -565,27 +622,31 @@ app.get('/profile', isAuthenticated, async (req, res) => {
                         <div class="info-value">${user.team_name || 'No Team Assigned'}</div>
                     </div>
 
-                    <div style="margin-top: 2rem;">
-                        <a href="/dashboard" style="text-decoration: none;">
-                            <button type="button" class="secondary-btn">Back to Dashboard</button>
+                    <div style="margin-top: 2rem; display: flex; gap: 10px;">
+                        <a href="/dashboard" style="text-decoration: none; flex: 1;">
+                            <button type="button" class="secondary-btn" style="width: 100%;">Back to Dashboard</button>
                         </a>
+                        ${req.session.role === 4 && user.role !== 4 ? `
+                             <button type="button" class="manage-btn" style="flex: 1;">Manage User</button>
+                        ` : ''}
                     </div>
                 </div>
             </body>
         </html>`);
   } catch (err) {
+    console.error(err);
     res.status(500).send("Error loading profile");
   }
 });
 
 // Where the requests to join the team are located for admins
-app.get('/team-requests', isAuthenticated, isAdmin, async (req, res) => {
+app.get('/team-requests', isAuthenticated, requireRole(ROLES.ADMIN), async (req, res) => {
   try {
     const requests = await pool.query(
       `SELECT u.id, u.user_name, u.email 
              FROM user_account u 
              JOIN team t ON u.team_id = t.id 
-             WHERE t.name = $1 AND u.is_approved = FALSE`,
+             WHERE t.name = $1 AND u.role = 0`,
       [req.session.team]
     );
 
@@ -865,12 +926,7 @@ app.get('/reset-confirmation', (req, res) => {
   </body></html>`);
 });
 
-app.get('/create-subteam', isAuthenticated, (req, res) => {
-    // Admin check for the route
-    if (!req.session.admin) {
-        return res.redirect('/dashboard');
-    }
-
+app.get('/create-subteam', isAuthenticated, requireRole(ROLES.ADMIN), (req, res) => {
     const error = req.query.error;
 
     res.send(`

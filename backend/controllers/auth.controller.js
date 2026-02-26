@@ -7,6 +7,13 @@ import pgSession from 'connect-pg-simple'
 const SALT_ROUNDS = 12;
 const EMAIL_REGEX = /\w*@(?:\w*.)+/;
 const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+const ROLES = {
+  PENDING: 0,
+  MEMBER: 1,
+  LEAD: 2,
+  ADMIN: 3,
+  OWNER: 4,
+}
 
 // User Signup
 export async function signup(req, res) {
@@ -53,16 +60,25 @@ export async function signup(req, res) {
 
     const result = await pool.query(
       `
-      INSERT INTO user_account (user_name, email, password_hash, team_id, is_approved)
-      VALUES ($1, $2, $3, NULL, FALSE)
-      RETURNING id, user_name, email
+      INSERT INTO user_account (user_name, email, password_hash, team_id, role)
+      VALUES ($1, $2, $3, NULL, $4)
+      RETURNING id, user_name, email, role
       `,
-      [user_name, clean_email, passwordHash]
+      [user_name, clean_email, passwordHash, ROLES.PENDING]
     );
     req.session.user_id = result.rows[0].id;
     req.session.user_name = result.rows[0].user_name;
     req.session.email = result.rows[0].email;
-    res.redirect("/dashboard");
+    req.session.role = result.rows[0].role;
+    req.session.team = null;
+    req.session.team_id = null;
+    req.session.save((err) => {
+      if (err) {
+        console.error("Session Save Error:", err);
+        return res.redirect(`/signup?error=Server%20Error`);
+      }
+      res.redirect("/dashboard");
+    });
     // res.status(201).json({
     //   message: 'User created',
     //   user: result.rows[0],
@@ -104,9 +120,8 @@ export async function login(req, res) {
   }
 
   try {
-    // Ensure user doesn't already exist
     const userResult = await pool.query(
-      'SELECT id, user_name, password_hash, team_id FROM user_account WHERE email = $1',
+      'SELECT id, user_name, password_hash, team_id, role FROM user_account WHERE email = $1',
       [clean_email]
     );
 
@@ -116,8 +131,8 @@ export async function login(req, res) {
       return res.redirect(`/login?error=Invalid%20Credentials`);
       //return res.status(400).json({ error: 'Invalid credentials' });
     }
-    req.session.admin = false;
     req.session.team = null;
+    req.session.role = user.role;
     req.session.team_id = user.team_id;
     if (user.team_id != null) {
       const team = await pool.query(
@@ -125,9 +140,6 @@ export async function login(req, res) {
         [user.team_id]
       );
       req.session.team = team.rows[0].name;
-      if (user.id === team.rows[0].lead_id) {
-        req.session.admin = true;
-      }
     }
 
     //Ensure that the password is correct
@@ -140,6 +152,12 @@ export async function login(req, res) {
           return res.redirect(`/login?error=Server%20Error`);
           //return res.status(500).send("Error saving session");
         }
+        req.session.save((err) => {
+          if (err) {
+            console.error('Session Save Error:', err);
+            return res.redirect(`/login?error=Server%20Error`);
+          }
+        });
         res.redirect('/dashboard');
       });
       // res.status(200).json({
@@ -203,13 +221,20 @@ export async function createTeam(req, res) {
     );
 
     await pool.query(
-      "UPDATE user_account SET team_id = $1, is_approved = TRUE WHERE id = $2",
-      [result.rows[0].id, user_id]
+      "UPDATE user_account SET team_id = $1, role = $2 WHERE id = $3",
+      [result.rows[0].id, ROLES.OWNER, user_id]
     );
 
     await client.query('COMMIT');
     req.session.team = team_name;
-    req.session.admin = true;
+    req.session.team_id = result.rows[0].id;
+    req.session.role = ROLES.OWNER;
+    req.session.save((err) => {
+      if (err) {
+        console.error("Session Save Error:", err);
+        return res.redirect(`/create-team?error=Server%20Error`);
+      }
+    });
     res.redirect("/dashboard");
     //res.status(201).json({message: "Team created", team: result.rows[0]});
   }
@@ -248,6 +273,13 @@ export async function teamRequest(req, res) {
       [team_id, user_id]
     );
     req.session.team = team_name;
+    req.session.team_id = team_id;
+    req.session.save((err) => {
+      if (err) {
+        console.error("Session Save Error:", err);
+        return res.redirect(`/join-team?error=Server%20Error`);
+      }
+    });
     res.redirect("/dashboard");
     //res.status(200).json({ message: 'Team request submitted' });
   }
