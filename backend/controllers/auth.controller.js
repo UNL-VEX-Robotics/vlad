@@ -11,6 +11,7 @@ const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$
 // User Signup
 export async function signup(req, res) {
   const { user_name, email, password, confirmPassword } = req.body;
+  const clean_email = email.trim().toLowerCase();
 
   if (password.length < 8){
     return res.redirect(`/signup?error=Password%20must%20be%20at%20least%208%20characters`);
@@ -26,13 +27,12 @@ export async function signup(req, res) {
   }
 
   // Check if all fields are filled in
-  if (!user_name || !email || !password) {
+  if (!user_name || !clean_email || !password) {
     return res.redirect(`/signup?error=Missing%20field`);
     //return res.status(400).json({ error: 'Missing required fields.' });
   }
 
   // Check if email is valid
-  const clean_email = email.trim().toLowerCase();
   if (!EMAIL_REGEX.test((clean_email))) {
     return res.redirect(`/signup?error=Invalid%20email`);
     //return res.status(400).json({ error: 'Invalid email.' })
@@ -42,7 +42,7 @@ export async function signup(req, res) {
     // Ensure user doesn't already exist
     const existingUser = await pool.query(
       'SELECT id FROM user_account WHERE email = $1',
-      [email]
+      [clean_email]
     );
     if (existingUser.rows.length > 0) {
       return res.redirect('/signup?error=User%20Already%20Exists');
@@ -57,7 +57,7 @@ export async function signup(req, res) {
       VALUES ($1, $2, $3, NULL, FALSE)
       RETURNING id, user_name, email
       `,
-      [user_name, email, passwordHash]
+      [user_name, clean_email, passwordHash]
     );
     req.session.user_id = result.rows[0].id;
     req.session.user_name = result.rows[0].user_name;
@@ -94,9 +94,11 @@ async function checkPassword(plainPassword, hashedPassword, res) {
 export async function login(req, res) {
   const { email, password } = req.body;
 
+  const clean_email = email.trim().toLowerCase();
+
   // Check if all fields are filled in
 
-  if (!email || !password) {
+  if (!clean_email || !password) {
     return res.redirect(`/login?error=Missing%20field`);
     //return res.status(400).json({ error: 'Missing required fields.' });
   }
@@ -105,7 +107,7 @@ export async function login(req, res) {
     // Ensure user doesn't already exist
     const userResult = await pool.query(
       'SELECT id, user_name, password_hash, team_id FROM user_account WHERE email = $1',
-      [email]
+      [clean_email]
     );
 
     const user = userResult.rows[0];
@@ -116,6 +118,7 @@ export async function login(req, res) {
     }
     req.session.admin = false;
     req.session.team = null;
+    req.session.team_id = user.team_id;
     if (user.team_id != null) {
       const team = await pool.query(
         'SELECT name, lead_id FROM team WHERE id = $1',
@@ -174,6 +177,11 @@ export async function createTeam(req, res) {
   const client = await pool.connect();
   const { team_name } = req.body;
   const user_id = req.session.user_id;
+  
+  if (!team_name) {
+    return res.redirect(`/create-team?error=Missing%20field`);
+  }
+
   try {
 
     //Check if team already exists
@@ -220,6 +228,11 @@ export async function createTeam(req, res) {
 export async function teamRequest(req, res) {
   const { team_name } = req.body;
   const user_id = req.session.user_id;
+
+  if (!team_name) {
+    return res.redirect(`/join-team?error=Missing%20field`);
+  }
+
   try {
     const teamResult = await pool.query(
       "SELECT id FROM team WHERE name = $1",

@@ -3,8 +3,11 @@ import pool from './db.js';
 import authRoutes from './routes/auth.js';
 import emailRoutes from './routes/reset.js';
 import adminRoutes from './routes/admin.js';
+import subteamRoutes from './routes/subteam.js';
 import session from 'express-session';
 import pgSession from 'connect-pg-simple';
+import { configDotenv } from 'dotenv';
+
 
 import bodyParser from "body-parser";
 
@@ -13,17 +16,16 @@ const PostgresStore = pgSession(session);
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-
 app.use(session({
   store: new PostgresStore({
     pool: pool,
     tableName: 'session'
   }),
-  secret: process.env.SESSION_SECRET || 'vlad_secret_key',
+  secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   cookie: {
-    maxAge: 30 * 24 * 60 * 60 * 1000,
+    maxAge: parseInt(process.env.COOKIE_MAX_AGE),
     httpOnly: true,
     secure: false
   }
@@ -57,6 +59,9 @@ app.use(reset, emailRoutes);
 
 const admin = '/admin';
 app.use(admin, adminRoutes);
+
+const subteam = '/subteam';
+app.use(subteam, subteamRoutes);
 
 
 app.get('/health', async (req, res) => {
@@ -159,6 +164,7 @@ const commonStyles = `
     .password-toggle-text { position: absolute; right: 15px; font-size: 0.7rem; font-weight: 800; color: var(--accent-red); cursor: pointer; user-select: none; text-transform: uppercase; }
     .password-toggle-text:hover { color: var(--accent-hover); }
 
+    /* Alert Box */
     .alert-box {
     display: flex;
     align-items: center;
@@ -170,14 +176,66 @@ const commonStyles = `
     margin-bottom: 20px;
     text-align: center;
     line-height: 1.4;
-    transition: all 0.3s ease;
-}
-
-  .alert-box {
+    transition: all 0.3s ease;}
+    .alert-box {
     background: var(--alert-bg);
     color: var(--alert-text);
-    border: 1px solid var(--alert-border);
-  }
+    border: 1px solid var(--alert-border);}
+
+    /* Top Profile Menu */
+    .top-nav { position: absolute; top: 20px; right: 280px; z-index: 10; }
+    .profile-trigger { 
+    background: var(--bg-card); 
+    border: 1px solid var(--border-color); 
+    color: var(--text-main); 
+    padding: 8px 15px; 
+    border-radius: 8px; 
+    cursor: pointer; 
+    font-weight: 600; 
+    font-size: 0.85rem;}
+
+    /* Subteam Grid */
+    .subteam-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin-top: 20px; }
+    .subteam-card { 
+    background: var(--bg-card); 
+    border: 1px solid var(--border-color); 
+    padding: 15px; 
+    border-radius: 10px; 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: flex-start;
+    position: relative;}
+
+    /* Sidebar Request Button */
+    .manage-btn { 
+    background: #805ad5 !important; 
+    font-size: 0.75rem !important; 
+    padding: 6px !important; 
+    margin-top: 10px; }
+
+    /* Modal Styles */
+    .modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;}
+
+    .modal-content {
+    background: var(--bg-card);
+    border: 2px solid var(--accent-red);
+    padding: 2rem;
+    border-radius: 12px;
+    max-width: 400px;
+    text-align: center;
+    box-shadow: 0 0 20px rgba(229, 62, 62, 0.2);}
+
+    .modal-btns {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;}
 </style>
 `;
 
@@ -197,7 +255,7 @@ app.get('/signup', (req, res) => {
   }
   res.send(`<html><head>${commonStyles}</head><body>
         <div class="card">
-            <form method="POST" action=${auth}/signup">
+            <form method="POST" action="${auth}/signup">
                 <h2>Sign Up</h2>
                 ${errorMessageHtml}
                 <label>Username</label><input name="user_name" placeholder="Username" required />
@@ -289,6 +347,7 @@ app.get('/login', (req, res) => {
 app.get('/dashboard', isAuthenticated, async (req, res) => {
   try {
     let memberListHtml = '';
+    let subteamHtml = '';
     let approvalMessage = '';
 
     const userCheck = await pool.query(
@@ -299,10 +358,11 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
     const teamIdFromDb = userCheck.rows[0]?.team_id;
 
     if (req.session.team && isApproved) {
+      // 1. Get Members
       const membersResult = await pool.query(
         `SELECT id, user_name FROM user_account 
-         WHERE team_id = (SELECT id FROM team WHERE name = $1) 
-         AND is_approved = TRUE`,
+          WHERE team_id = (SELECT id FROM team WHERE name = $1) 
+          AND is_approved = TRUE`,
         [req.session.team]
       );
       memberListHtml = membersResult.rows.map(m => `
@@ -315,10 +375,26 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
                 <form action="/report" method="POST" style="margin:0;"><input type="hidden" name="user_id" value="${m.id}"><button type="submit">Report</button></form>
             </div>
           </div>
-        </li>
-      `).join('');
+        </li>`).join('');
+
+      // 2. Get Subteams
+      const subteamsResult = await pool.query(
+        `SELECT id, name FROM subteam WHERE team_id = $1`,
+        [teamIdFromDb]
+      );
+      subteamHtml = subteamsResult.rows.map(s => `
+        <div class="subteam-card">
+          <div style="font-weight: 700; color: var(--text-heading);">${s.name}</div>
+          ${req.session.admin ? `
+          <div class="menu-container">
+            <button class="dot-btn" onclick="toggleMenu(event, 'sub-${s.id}')">⋮</button>
+            <div id="sub-${s.id}" class="dropdown-menu">
+              <form action="/edit-subteam" method="GET" style="margin:0;"><input type="hidden" name="id" value="${s.id}"><button type="submit">Edit Name</button></form>
+              <button type="button" onclick="confirmDelete('${s.id}', '${s.name}')" style="color:var(--accent-red); width:100%; text-align:left; background:none; border:none; padding: 8px 12px; font-size: 0.85rem; cursor:pointer;">Delete</button>
+            </div>
+          </div>` : ''}
+        </div>`).join('');
     } else if (req.session.team && !isApproved && teamIdFromDb !== null) {
-      // Adjusted for Dark Mode compatibility
       approvalMessage = `<div style="background: var(--badge-pending-bg); border: 1px solid var(--border-color); padding: 15px; border-radius: 8px; color: var(--badge-pending-text); margin-bottom: 20px;">⏳ Waiting for team lead approval...</div>`;
     }
 
@@ -327,80 +403,81 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
       <head>
         ${commonStyles}
         <style>
-          body { display: flex; flex-direction: row; }
+          body { display: flex; flex-direction: row; position: relative; }
           .main-content { flex: 1; padding: 40px; }
-          
-          .sidebar { 
-            width: 280px; 
-            background: var(--bg-sidebar); 
-            border-left: 1px solid var(--border-color); 
-            padding: 20px; 
-            height: 100vh; 
-            box-sizing: border-box; 
-          }
-          
-          .member-row { 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            padding: 5px 0; 
-            border-bottom: 1px solid var(--border-color); 
-            position: relative; 
-          }
-          
-          .dot-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-muted); }
-          
-          .dropdown-menu { 
-            display: none; 
-            position: absolute; 
-            right: 0; 
-            top: 25px; 
-            background: var(--bg-card); 
-            border: 1px solid var(--border-color); 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
-            z-index: 100; 
-            width: 140px; 
-            border-radius: 6px; 
-            overflow: hidden;
-          }
-          
-          .dropdown-menu button { 
-            border-radius: 0; 
-            border: none; 
-            border-bottom: 1px solid var(--border-color); 
-            background: var(--bg-card); 
-            color: var(--text-main); 
-            text-align: left; 
-            padding: 8px 12px; 
-            font-size: 0.85rem; 
-          }
-          
-          .dropdown-menu button:hover { background: var(--btn-secondary-bg); }
-          .dropdown-menu form:last-child button { border-bottom: none; }
         </style>
       </head>
       <body>
-        <div class="main-content">
-          <h2 style="color: var(--text-heading);">Welcome, ${req.session.user_name}</h2>
-          ${approvalMessage}
+        <div id="deleteModal" class="modal-overlay">
+            <div class="modal-content">
+                <h3 style="color: var(--accent-red); margin-top: 0;">Confirm Deletion</h3>
+                <p style="color: var(--text-main); font-size: 0.9rem;">
+                    Are you sure you want to delete subteam <strong id="deleteSubteamName"></strong>?
+                </p>
+                <p style="color: var(--text-muted); font-size: 0.75rem;">
+                    Warning: All associated projects and tasks will be permanently purged.
+                </p>
+                <div class="modal-btns">
+                    <button class="secondary-btn" onclick="closeModal()">Cancel</button>
+                    <form id="deleteForm" action="/subteam/delete-subteam" method="POST" style="margin:0; flex:1;">
+                        <input type="hidden" name="id" id="deleteSubteamId">
+                        <button type="submit" style="background: var(--accent-red);">Delete</button>
+                    </form>
+                </div>
+            </div>
+        </div>
 
-          <div style="max-width: 400px;">
-            ${(!req.session.team || teamIdFromDb === null) ? `
-              <form action="/create-team" method="GET"><button type="submit">Create Team</button></form>
-              <form action="/join-team" method="GET"><button type="submit" class="secondary-btn">Join Team</button></form>
-            ` : isApproved ? `<p><strong>✓ Active Member of: ${req.session.team}</strong></p>` : ''}
-
-            ${req.session.admin ? `<form action="/team-requests" method="GET"><button type="submit" style="background:#805ad5; margin-top:4px;">Manage Team Requests</button></form>` : ''}
-            
-            <hr style="margin: 20px 0; border: 0; border-top: 1px solid var(--border-color);">
-            <form action="/email" method="GET"><button type="submit" class="secondary-btn">Reset Password</button></form>
-            <form action="/health" method="GET"><button type="submit" class="secondary-btn">System Health</button></form>
-            <form action="${auth}/logout" method="POST"><button type="submit" style="background:#e53e3e; margin-top:4px;">Log Out</button></form>
+        <div class="top-nav">
+          <div class="menu-container">
+            <button class="profile-trigger" onclick="toggleMenu(event, 'profile-menu')">
+              Account: ${req.session.user_name} ▾
+            </button>
+            <div id="profile-menu" class="dropdown-menu">
+              <form action="/auth/logout" method="POST" style="border-top: 1px solid var(--border-color);">
+                <button type="submit" style="color: var(--accent-red);">Log Out</button>
+              </form>
+            </div>
           </div>
         </div>
 
+        <div class="main-content">
+          <h2 style="color: var(--text-heading);">Dashboard</h2>
+          ${approvalMessage}
+
+          ${(!req.session.team || teamIdFromDb === null) ? `
+            <div class="card" style="margin:0; max-width:400px;">
+              <h3>Get Started</h3>
+              <form action="/create-team" method="GET"><button type="submit">Create Team</button></form>
+              <form action="/join-team" method="GET"><button type="submit" class="secondary-btn">Join Team</button></form>
+            </div>
+          ` : `
+            <h3 style="color: var(--text-muted); font-size: 0.9rem; text-transform: uppercase;">Subteams</h3>
+            <div class="subteam-grid">
+              ${subteamHtml || `<div class="subteam-card" style="color:var(--text-muted);">No subteams created yet.</div>`}
+              ${req.session.admin ? `
+                <a href="/create-subteam" style="text-decoration:none;">
+                  <div class="subteam-card" style="border: 2px dashed var(--border-color); justify-content:center; color: var(--accent-red); cursor:pointer;">
+                    + Create Subteam
+                  </div>
+                </a>
+              ` : ''}
+            </div>
+          `}
+        </div>
+
         <div class="sidebar">
-          <h3 style="margin-top:0; font-size: 1.1rem; color: var(--text-heading);">${req.session.team ? 'Team: ' + req.session.team : 'No Team'}</h3>
+          <h3 style="margin-top:0; font-size: 1.1rem; color: var(--text-heading); margin-bottom: 5px;">
+            ${req.session.team ? req.session.team : 'No Team'}
+          </h3>
+          
+          ${req.session.admin ? `
+            <form action="/team-requests" method="GET">
+              <button type="submit" class="manage-btn">Manage Requests</button>
+            </form>
+          ` : ''}
+
+          <hr style="margin: 20px 0; border: 0; border-top: 1px solid var(--border-color);">
+          
           <label>MEMBERS</label>
           <ul style="list-style:none; padding:0;">
             ${memberListHtml || `<li style="color: var(--text-muted); font-size:0.9rem;">No members visible</li>`}
@@ -410,14 +487,29 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
         <script>
           function toggleMenu(event, id) {
             event.stopPropagation();
-            document.querySelectorAll('.dropdown-menu').forEach(m => { if(m.id !== id) m.style.display = 'none'; });
             const menu = document.getElementById(id);
-            menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';
+            const isVisible = menu.style.display === 'block';
+            document.querySelectorAll('.dropdown-menu').forEach(m => m.style.display = 'none');
+            menu.style.display = isVisible ? 'none' : 'block';
           }
-          document.addEventListener('click', () => { document.querySelectorAll('.dropdown-menu').forEach(m => m.style.display = 'none'); });
+
+          function confirmDelete(id, name) {
+            document.getElementById('deleteSubteamId').value = id;
+            document.getElementById('deleteSubteamName').innerText = name;
+            document.getElementById('deleteModal').style.display = 'flex';
+          }
+
+          function closeModal() {
+            document.getElementById('deleteModal').style.display = 'none';
+          }
+
+          document.addEventListener('click', () => { 
+            document.querySelectorAll('.dropdown-menu').forEach(m => m.style.display = 'none'); 
+          });
         </script>
       </body></html>`);
   } catch (err) {
+    console.error(err);
     res.status(500).send("Error loading dashboard");
   }
 });
@@ -771,6 +863,50 @@ app.get('/reset-confirmation', (req, res) => {
       </form>
     </div>
   </body></html>`);
+});
+
+app.get('/create-subteam', isAuthenticated, (req, res) => {
+    // Admin check for the route
+    if (!req.session.admin) {
+        return res.redirect('/dashboard');
+    }
+
+    const error = req.query.error;
+
+    res.send(`
+    <html>
+      <head>
+        ${commonStyles}
+      </head>
+      <body>
+        <div class="card">
+          <form action="/subteam/create-subteam" method="POST">
+            <h2 style="border-bottom: 2px solid var(--accent-red); padding-bottom: 10px; margin-bottom: 20px;">
+                Initialize Subteam
+            </h2>
+            
+            ${error ? `
+                <div class="alert-box" style="margin-bottom: 20px;">
+                    <span style="margin-right: 8px;"></span> ${error}
+                </div>` : ''}
+
+            <p style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 25px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;">
+                Primary Team: <span style="color: var(--text-main);">${req.session.team}</span>
+            </p>
+
+            <label>Subteam Designation</label>
+            <input type="text" name="subteamName" placeholder="Enter subteam name..." required autofocus />
+
+            <div style="margin-top: 25px;">
+                <button type="submit">Deploy Subteam</button>
+                <a href="/dashboard" style="text-decoration: none;">
+                    <button type="button" class="secondary-btn" style="margin-top: 10px;">Return to Dashboard</button>
+                </a>
+            </div>
+          </form>
+        </div>
+      </body>
+    </html>`);
 });
 
 export default app;

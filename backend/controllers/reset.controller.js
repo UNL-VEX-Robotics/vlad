@@ -39,7 +39,7 @@ export async function sendResetPasswordEmail(req, res) {
       `
       SELECT id FROM user_account WHERE email = $1
       `,
-      [to]
+      [clean_email]
     );
 
     if (!(results.rows[0])){
@@ -50,7 +50,7 @@ export async function sendResetPasswordEmail(req, res) {
       `
       UPDATE user_account SET reset_token = $1, reset_expiry = $2 WHERE email = $3
       `,
-      [resetToken, expires, to]
+      [resetToken, expires, clean_email]
     );
 
     const host = req.get('host');
@@ -58,7 +58,7 @@ export async function sendResetPasswordEmail(req, res) {
     const resetLink = `${protocol}://${host}/reset-password?token=${resetToken}`;
     const mailOptions = {
       from: `"VLAD App" <${process.env.EMAIL_USER}>`, // Adds a nice display name
-      to: to,
+      to: clean_email,
       subject: 'Reset Your VLAD Password',
       html: `
     <div style="font-family: sans-serif; background-color: #f4f7f9; padding: 40px 10px; line-height: 1.6;">
