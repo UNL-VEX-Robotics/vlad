@@ -63,27 +63,27 @@ const requireRole = (requiredRole) => {
 }
 
 app.use(async (req, res, next) => {
-    if (req.session && req.session.user_id) {
-        try {
-            // Fetch multiple updated fields from the DB
-            const result = await pool.query(
-                'SELECT role, user_name, team_id FROM user_account WHERE id = $1', 
-                [req.session.user_id]
-            );
+  if (req.session && req.session.user_id) {
+    try {
+      // Fetch multiple updated fields from the DB
+      const result = await pool.query(
+        'SELECT role, user_name, team_id FROM user_account WHERE id = $1',
+        [req.session.user_id]
+      );
 
-            if (result.rows.length > 0) {
-                const user = result.rows[0];
-                
-                // Sync all relevant variables to the session
-                req.session.role = user.role;
-                req.session.user_name = user.user_name; // Syncs name changes
-                req.session.team_id = user.team_id;     // Syncs team switches
-            }
-        } catch (err) {
-            console.error("Session sync error:", err);
-        }
+      if (result.rows.length > 0) {
+        const user = result.rows[0];
+
+        // Sync all relevant variables to the session
+        req.session.role = user.role;
+        req.session.user_name = user.user_name; // Syncs name changes
+        req.session.team_id = user.team_id;     // Syncs team switches
+      }
+    } catch (err) {
+      console.error("Session sync error:", err);
     }
-    next();
+  }
+  next();
 });
 
 
@@ -383,27 +383,65 @@ app.get('/login', (req, res) => {
 
 // Main Dashboard Page
 app.get('/dashboard', isAuthenticated, async (req, res) => {
-  const error = req.query.error; // Catch the error message from the URL
+  const error = req.query.error;
 
   let errorMessageHtml = '';
   if (error) {
-    errorMessageHtml = `
-    <div class="alert-box">
-      ${error}
-    </div>
-  `;
+    errorMessageHtml = `<div class="alert-box">${error}</div>`;
   }
+
   try {
     let memberListHtml = '';
     let subteamHtml = '';
     let approvalMessage = '';
+    let notificationsHtml = '';
 
     const userRole = req.session.role;
     const teamId = req.session.team_id;
     const isApproved = userRole > 0;
 
+    // 0. Fetch Notifications (Reasons for removal/promotion/etc)
+    const notifResult = await pool.query(
+      `SELECT id, title, message FROM notifications 
+       WHERE user_id = $1 AND is_read = FALSE 
+       ORDER BY created_at DESC`,
+      [req.session.user_id]
+    );
+
+    // Inside app.get('/dashboard')
+    // ... (previous logic for fetching notifResult)
+
+    const notificationsList = notifResult.rows.map(n => `
+    <div class="notification-item" style="background: var(--bg-card); border: 1px solid var(--border-color); border-left: 4px solid var(--accent-red); padding: 12px; border-radius: 6px; margin-bottom: 10px; position: relative;">
+      <h4 style="margin: 0 0 3px 0; font-size: 0.9rem; color: var(--text-heading);">${n.title}</h4>
+      <p style="margin: 0; font-size: 0.85rem; color: var(--text-main); line-height:1.4;">${n.message}</p>
+      <form action="/notifications/dismiss" method="POST" style="margin-top: 8px;">
+        <input type="hidden" name="notif_id" value="${n.id}">
+        <button type="submit" style="background:none; border:none; color:var(--text-muted); font-size:0.75rem; cursor:pointer; text-decoration:underline; padding:0;">Mark as read</button>
+      </form>
+    </div>
+    `).join('');
+
+    notificationsHtml = notifResult.rows.length > 0 ? `
+    <div class="notifications-container" style="margin-bottom: 40px; max-width: 600px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <label style="font-size:0.7rem; font-weight:bold; color:var(--text-muted); text-transform:uppercase; letter-spacing: 0.05rem;">
+          Notifications (${notifResult.rows.length})
+        </label>
+        <form action="/notifications/dismiss-all" method="POST" style="margin:0;">
+          <button type="submit" style="background:none; border:none; color:var(--accent-red); font-size:0.7rem; font-weight:bold; cursor:pointer; text-transform:uppercase;">
+            Clear All
+          </button>
+        </form>
+      </div>
+      <div class="notifications-scroll-area" style="max-height: 250px; overflow-y: auto; padding-right: 8px;">
+        ${notificationsList}
+      </div>
+    </div>
+    ` : '';
+
     if (req.session.team && isApproved) {
-      // 1. Get Members - Added ORDER BY role DESC (higher roles first), then by name
+      // 1. Get Members
       const membersResult = await pool.query(
         `SELECT id, user_name, role FROM user_account 
           WHERE team_id = (SELECT id FROM team WHERE name = $1) 
@@ -414,10 +452,8 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
 
       memberListHtml = membersResult.rows.map(m => {
         const roleLabels = { 1: 'Member', 2: 'Lead', 3: 'Admin', 4: 'Owner' };
-        
         let actionButtons = '';
         if (userRole >= 3 && m.id !== req.session.user_id) {
-          
           if (m.role < 3) {
             actionButtons += `
               <form action="/admin/change-role" method="POST" style="margin:0;">
@@ -426,9 +462,7 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
                 <button type="submit">Promote to ${roleLabels[m.role + 1]}</button>
               </form>`;
           }
-
           const canDemote = m.role > 1 && (userRole > m.role);
-          
           if (canDemote) {
             actionButtons += `
               <form action="/admin/change-role" method="POST" style="margin:0;">
@@ -483,6 +517,7 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
           .main-content { flex: 1; padding: 40px; }
           .dropdown-menu button { width: 100%; text-align: left; background: none; border: none; padding: 8px 12px; font-size: 0.85rem; cursor: pointer; color: var(--text-main); }
           .dropdown-menu button:hover { background: var(--bg-body); }
+          .alert-box { background: var(--accent-red); color: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
         </style>
       </head>
       <body>
@@ -517,6 +552,7 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
 
         <div class="main-content">
           ${errorMessageHtml}
+          ${notificationsHtml}
           <h2 style="color: var(--text-heading);">Dashboard</h2>
           ${approvalMessage}
 
@@ -592,10 +628,20 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
 
 // Page with a profile for the specifed user
 app.get('/profile', isAuthenticated, async (req, res) => {
+  const error = req.query.error; // Catch the error message from the URL
+
+  let errorMessageHtml = '';
+  if (error) {
+    errorMessageHtml = `
+    <div class="alert-box">
+      ${error}
+    </div>
+  `;
+  }
   try {
     const targetUserId = req.query.user_id;
     const userResult = await pool.query(
-      `SELECT u.user_name, u.email, u.role, t.name as team_name 
+      `SELECT u.id, u.user_name, u.email, u.role, t.name as team_name 
        FROM user_account u 
        LEFT JOIN team t ON u.team_id = t.id 
        WHERE u.id = $1`,
@@ -605,16 +651,63 @@ app.get('/profile', isAuthenticated, async (req, res) => {
     if (userResult.rows.length === 0) return res.status(404).send("User not found");
     const user = userResult.rows[0];
 
-    // Map role numbers to labels and CSS classes
     const roleMap = {
-      0: { label: '⏳ Pending Approval', class: 'badge-pending' },
-      1: { label: 'Member', class: 'badge-member' },
-      2: { label: 'Subteam Lead', class: 'badge-lead' },
-      3: { label: 'Admin', class: 'badge-admin' },
-      4: { label: 'Owner', class: 'badge-owner' }
+      [ROLES.PENDING]: { label: 'Pending Approval', class: 'badge-pending' },
+      [ROLES.MEMBER]: { label: 'Member', class: 'badge-member' },
+      [ROLES.LEAD]: { label: 'Lead', class: 'badge-lead' },
+      [ROLES.ADMIN]: { label: 'Admin', class: 'badge-admin' },
+      [ROLES.OWNER]: { label: 'Owner', class: 'badge-owner' }
     };
 
     const currentRole = roleMap[user.role] || { label: 'Unknown', class: 'badge-pending' };
+
+    let manageDropdownHtml = '';
+    // Only show management if session user is OWNER and not looking at themselves
+    if (req.session.role === ROLES.OWNER && user.id !== req.session.user_id) {
+      let actions = '';
+
+      // Promote Logic: Pulls "Lead" or "Admin" label dynamically
+      if (user.role < ROLES.ADMIN) {
+        const nextRoleData = roleMap[user.role + 1];
+        actions += `
+          <form action="/admin/change-role" method="POST" style="margin:0;">
+            <input type="hidden" name="user_id" value="${user.id}">
+            <input type="hidden" name="new_role" value="${user.role + 1}">
+            <button type="submit">Promote to ${nextRoleData.label}</button>
+          </form>`;
+      }
+
+      // Demote Logic: Pulls "Member" or "Lead" label dynamically
+      if (user.role > ROLES.MEMBER) {
+        const prevRoleData = roleMap[user.role - 1];
+        actions += `
+          <form action="/admin/change-role" method="POST" style="margin:0;">
+            <input type="hidden" name="user_id" value="${user.id}">
+            <input type="hidden" name="new_role" value="${user.role - 1}">
+            <button type="submit" style="color:var(--accent-red);">Demote to ${prevRoleData.label}</button>
+          </form>`;
+      }
+
+      // Transfer Ownership: Special high-priority action
+      actions += `
+        <button type="button" onclick="openTransferModal()" style="color:var(--accent-red); font-weight:bold; border-top:1px solid var(--border-color); margin-top:5px; padding-top:10px;">
+          Transfer Ownership
+        </button>`;
+
+      // Remove User
+      actions += `
+        <button type="button" onclick="openRemoveModal()" style="color:var(--accent-red);">
+          Remove from Team
+        </button>`;
+
+      manageDropdownHtml = `
+        <div class="menu-container" style="flex: 1; position: relative;">
+          <button type="button" class="manage-btn" style="width:100%;" onclick="toggleMenu(event, 'manage-menu')">Manage User ▾</button>
+          <div id="manage-menu" class="dropdown-menu" style="top: 100%; right: 0; width: 100%; min-width: 200px; z-index: 1000; display: none; box-shadow: var(--shadow-lg);">
+            ${actions}
+          </div>
+        </div>`;
+    }
 
     res.send(`
         <html>
@@ -626,31 +719,63 @@ app.get('/profile', isAuthenticated, async (req, res) => {
                         width: 80px; height: 80px; background: var(--accent-red); color: white; 
                         border-radius: 50%; display: flex; align-items: center; 
                         justify-content: center; font-size: 2rem; margin: 0 auto 1rem;
-                        text-transform: uppercase;
-                        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+                        text-transform: uppercase; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
                     }
                     .badge { display: inline-block; padding: 6px 16px; border-radius: 99px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-                    
-                    /* Role Specific Badge Colors */
                     .badge-owner { background: var(--accent-red); color: white; }
-                    .badge-admin { background: #805ad5; color: white; } /* Purple */
-                    .badge-lead { background: #3182ce; color: white; }  /* Blue */
-                    .badge-member { background: #38a169; color: white; } /* Green */
-                    .badge-pending { background: #718096; color: white; } /* Gray */
+                    .badge-admin { background: #805ad5; color: white; }
+                    .badge-lead { background: #3182ce; color: white; }
+                    .badge-member { background: #38a169; color: white; }
+                    .badge-pending { background: #718096; color: white; }
 
                     .info-group { margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; }
                     .info-label { font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); letter-spacing: 1px; margin-bottom: 4px; }
                     .info-value { font-size: 1.1rem; color: var(--text-heading); }
+                    
+                    .dropdown-menu { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 8px; position: absolute; }
+                    .dropdown-menu button { width: 100%; text-align: left; background: none; border: none; padding: 10px 12px; font-size: 0.85rem; cursor: pointer; color: var(--text-main); border-radius: 4px; }
+                    .dropdown-menu button:hover { background: var(--bg-body); }
                 </style>
             </head>
             <body>
+                <div id="removeModal" class="modal-overlay" style="display:none;">
+                    <div class="modal-content">
+                        <h3 style="color: var(--accent-red); margin-top: 0;">Remove ${user.user_name}</h3>
+                        <p style="font-size: 0.9rem; color: var(--text-main);">Provide a reason for removal. This will be sent to the user.</p>
+                        <form action="/admin/remove-member" method="POST">
+                            <input type="hidden" name="user_id" value="${user.id}">
+                            <textarea name="reason" placeholder="Reason for removal..." required style="width:100%; min-height:100px; padding:10px; border-radius:4px; border:1px solid var(--border-color); background:var(--bg-body); color:var(--text-main); margin-bottom:15px; resize: none;"></textarea>
+                            <div class="modal-btns">
+                                <button type="button" class="secondary-btn" onclick="closeModal('removeModal')">Cancel</button>
+                                <button type="submit" style="background: var(--accent-red);">Confirm Removal</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div id="transferModal" class="modal-overlay" style="display:none;">
+                    <div class="modal-content">
+                        <h3 style="color: var(--accent-red); margin-top: 0;">Transfer Ownership</h3>
+                        <p style="font-size: 0.9rem; color: var(--text-main);">
+                            Are you sure you want to transfer team ownership to <strong>${user.user_name}</strong>? 
+                            <br><br>
+                            <span style="color: var(--accent-red);">⚠️ You will be demoted to Admin and lose Owner privileges.</span>
+                        </p>
+                        <form action="/admin/transfer-ownership" method="POST">
+                            <input type="hidden" name="new_owner_id" value="${user.id}">
+                            <div class="modal-btns">
+                                <button type="button" class="secondary-btn" onclick="closeModal('transferModal')">Cancel</button>
+                                <button type="submit" style="background: var(--accent-red);">Confirm Transfer</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
                 <div class="card" style="max-width: 450px; margin: 50px auto;">
                     <div class="profile-header">
                         <div class="avatar-circle">${user.user_name.charAt(0)}</div>
                         <h2 style="color: var(--text-heading); margin-bottom: 8px;">${user.user_name}</h2>
-                        <span class="badge ${currentRole.class}">
-                            ${currentRole.label}
-                        </span>
+                        <span class="badge ${currentRole.class}">${currentRole.label}</span>
                     </div>
 
                     <div class="info-group">
@@ -663,15 +788,31 @@ app.get('/profile', isAuthenticated, async (req, res) => {
                         <div class="info-value">${user.team_name || 'No Team Assigned'}</div>
                     </div>
 
-                    <div style="margin-top: 2rem; display: flex; gap: 10px;">
+                    <div style="margin-top: 2rem; display: flex; gap: 10px; position: relative;">
                         <a href="/dashboard" style="text-decoration: none; flex: 1;">
                             <button type="button" class="secondary-btn" style="width: 100%;">Back to Dashboard</button>
                         </a>
-                        ${req.session.role === 4 && user.role !== 4 ? `
-                             <button type="button" class="manage-btn" style="flex: 1;">Manage User</button>
-                        ` : ''}
+                        ${manageDropdownHtml}
                     </div>
                 </div>
+
+                <script>
+                    function toggleMenu(event, id) {
+                        event.stopPropagation();
+                        const menu = document.getElementById(id);
+                        const isVisible = menu.style.display === 'block';
+                        document.querySelectorAll('.dropdown-menu').forEach(m => m.style.display = 'none');
+                        menu.style.display = isVisible ? 'none' : 'block';
+                    }
+
+                    function openRemoveModal() { document.getElementById('removeModal').style.display = 'flex'; }
+                    function openTransferModal() { document.getElementById('transferModal').style.display = 'flex'; }
+                    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+                    document.addEventListener('click', () => { 
+                        document.querySelectorAll('.dropdown-menu').forEach(m => m.style.display = 'none'); 
+                    });
+                </script>
             </body>
         </html>`);
   } catch (err) {
@@ -775,10 +916,21 @@ app.get('/team-requests', isAuthenticated, requireRole(ROLES.ADMIN), async (req,
 
 // Team Creation Page
 app.get('/create-team', isAuthenticated, (req, res) => {
+  const error = req.query.error; // Catch the error message from the URL
+
+  let errorMessageHtml = '';
+  if (error) {
+    errorMessageHtml = `
+    <div class="alert-box">
+      ${error}
+    </div>
+  `;
+  }
   res.send(`<html><head>${commonStyles}</head><body>
     <div class="card">
       <form method="POST" action="${auth}/create-team">
         <h2>Create A New Team</h2>
+        ${errorMessageHtml}
         <p style="color: #718096; font-size: 0.9rem; margin-bottom: 20px;">
           As the creator, you will be the team lead and manage join requests.
         </p>
@@ -795,10 +947,21 @@ app.get('/create-team', isAuthenticated, (req, res) => {
 
 // Page to request to join a team
 app.get('/join-team', isAuthenticated, (req, res) => {
+  const error = req.query.error; // Catch the error message from the URL
+
+  let errorMessageHtml = '';
+  if (error) {
+    errorMessageHtml = `
+    <div class="alert-box">
+      ${error}
+    </div>
+  `;
+  }
   res.send(`<html><head>${commonStyles}</head><body>
     <div class="card">
       <form method="POST" action="${auth}/join-team">
         <h2>Join Team</h2>
+        ${errorMessageHtml}
         <label>Search Team Name</label>
         <input name="team_name" placeholder="Enter exact team name" required />
         <input type="submit" value="Send Join Request" />
@@ -968,9 +1131,9 @@ app.get('/reset-confirmation', (req, res) => {
 });
 
 app.get('/create-subteam', isAuthenticated, requireRole(ROLES.ADMIN), (req, res) => {
-    const error = req.query.error;
+  const error = req.query.error;
 
-    res.send(`
+  res.send(`
     <html>
       <head>
         ${commonStyles}

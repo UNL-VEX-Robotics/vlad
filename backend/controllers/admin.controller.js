@@ -5,11 +5,11 @@ import pool from '../db.js';
  * Defines the hierarchy level for all users.
  */
 const ROLES = {
-  PENDING: 0,
-  MEMBER: 1,
-  LEAD: 2,
-  ADMIN: 3,
-  OWNER: 4,
+    PENDING: 0,
+    MEMBER: 1,
+    LEAD: 2,
+    ADMIN: 3,
+    OWNER: 4,
 }
 
 /*
@@ -44,7 +44,6 @@ export async function acceptUserRequest(req, res) {
 }
 
 /**
- * TODO: Add rejection notifaction to user once notification table is implemented.
  * Rejects a user join request.
  * Removes the team_id association from the user, allowing them to join a different team.
  * @param {Object} req - Express request object. Expects req.body.user_id.
@@ -56,6 +55,10 @@ export async function rejectUserRequest(req, res) {
         const result = await pool.query(
             "UPDATE user_account SET team_id = NULL WHERE id = $1 RETURNING id, user_name, email, team_id",
             [user_id]
+        );
+        await pool.query(
+            `INSERT INTO notifications (user_id, title, message, type, created_at) VALUES ($1, $2, $3, $4, NOW())`,
+            [user_id, 'Join Request Rejected: ' + req.session.team, 'Your request to join ' + req.session.team + ' was rejected by the team lead. You can try joining a different team or contact your team lead for more information.', 'rejection']
         );
         res.redirect('/team-requests');
     }
@@ -80,15 +83,14 @@ export async function removeUserFromTeam(req, res) {
             `UPDATE user_account SET team_id = NULL, role = $1 WHERE id = $2`,
             [ROLES.PENDING, user_id]
         );
-        // TODO: Create a notification for the user about their reason for removal waiting for notification table
         await pool.query(
             `INSERT INTO notifications (user_id, title, message, type, created_at) VALUES ($1, $2, $3, $4, NOW())`,
-            [user_id, 'Removed from Team: ' + req.session.team_name, reason, 'removal']
+            [user_id, 'Removed from Team: ' + req.session.team, reason, 'removal']
         );
         return res.redirect('/dashboard');
 
     }
-    catch(err) {
+    catch (err) {
         console.error("Error removing user from team:", err);
         return res.redirect('/dashboard?error=System%20Error');
     }
@@ -118,12 +120,12 @@ export async function changeUserRole(req, res) {
             await pool.query(
                 `UPDATE team SET lead_id = $1 WHERE id = (SELECT team_id FROM user_account WHERE id = $1)
                  UPDATE user_account SET role = $2 WHERE id = $3`,
-                 [user_id, ROLES.ADMIN, req.session.user_id]
+                [user_id, ROLES.ADMIN, req.session.user_id]
             );
         }
         return res.redirect('/dashboard');
     }
-    catch(err) {
+    catch (err) {
         console.error("Error promoting user:", err);
         return res.redirect('/dashboard?error=Failed%20to%20promote%20user');
     }

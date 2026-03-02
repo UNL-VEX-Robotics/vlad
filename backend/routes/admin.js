@@ -1,5 +1,5 @@
 import express from 'express'
-import { acceptUserRequest, changeUserRole, rejectUserRequest } from '../controllers/admin.controller.js'
+import { acceptUserRequest, changeUserRole, rejectUserRequest, removeUserFromTeam } from '../controllers/admin.controller.js'
 
 const router = express.Router()
 
@@ -13,6 +13,6 @@ router.post('/reject-member', rejectUserRequest);
 router.post('/change-role', changeUserRole);
 
 // POST /admin/remove-member
-router.post('/remove-member', changeUserRole);
+router.post('/remove-member', removeUserFromTeam);
 
 export default router;
