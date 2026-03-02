@@ -1,5 +1,9 @@
 import pool from '../db.js';
 
+/**
+ * Global Role Constants
+ * Defines the hierarchy level for all users.
+ */
 const ROLES = {
   PENDING: 0,
   MEMBER: 1,
@@ -14,28 +18,16 @@ TODO: test all admin functions
         rejectUserRequest
         acceptUserRequest
     Untested:
-        makeUserOwner
-    Unused:
-        getTeamUsers
+        changeUserRole
+        removeUserFromTeam
 */
 
-// Get all users on the admin's team (for admin dashboard view) (could be moved to another file later for wider use)
-export async function getTeamUsers(req, res) {
-    try {
-        const adminTeamId = req.admin.team_id;
-        const result = await pool.query(
-            "SELECT id, user_name, email, FROM user_account WHERE team_id = $1 AND role != 0",
-            [adminTeamId]
-        );
-        res.status(200).json({ success: true, users: result.rows });
-    }
-    catch (err) {
-        console.error("Error fetching team users:", err);
-        res.status(500).json({ success: false, message: "Failed to fetch team users" });
-    }
-}
-
-// Accepts a user signup request by setting role to member
+/**
+ * Accepts a user join request.
+ * Promotes a user from PENDING (0) to MEMBER (1).
+ * @param {Object} req - Express request object. Expects req.body.user_id.
+ * @param {Object} res - Express response object. Redirects to team requests.
+ */
 export async function acceptUserRequest(req, res) {
     const { user_id } = req.body;
     try {
@@ -45,20 +37,19 @@ export async function acceptUserRequest(req, res) {
         );
 
         res.redirect('/team-requests');
-
-        // res.status(200).json({
-        //     success: true,
-        //     message: "User approved successfully",
-        //     data: result.rows[0]
-        // });
     } catch (error) {
         console.error("Error approving user:", error);
         return res.redirect('/team-requests?error=Server%20Error');
-        //res.status(500).json({ success: false, message: "Failed to approve user" });
     }
 }
 
-// Rejects a user signup request (for admin dashboard view)
+/**
+ * TODO: Add rejection notifaction to user once notification table is implemented.
+ * Rejects a user join request.
+ * Removes the team_id association from the user, allowing them to join a different team.
+ * @param {Object} req - Express request object. Expects req.body.user_id.
+ * @param {Object} res - Express response object. Redirects to team requests.
+ */
 export async function rejectUserRequest(req, res) {
     const { user_id } = req.body;
     try {
@@ -67,44 +58,73 @@ export async function rejectUserRequest(req, res) {
             [user_id]
         );
         res.redirect('/team-requests');
-        // res.status(200).json({
-        //     success: true,
-        //     message: "User rejected successfully",
-        //     data: result.rows[0]
-        // });
     }
     catch (error) {
         console.error("Error rejecting user:", error);
         return res.redirect('/team-requests?error=Server%20Error');
-        //res.status(500).json({ success: false, message: "Failed to reject user" });
     }
 }
 
-// Promote a user to team owner
-export async function makeUserOwner(req, res) {
-    const { user_id } = req.params;
+/**
+ * Removes a user from their current team.
+ * @param {Object} req - Express request object.
+ * @param {Object} res - Express response object.
+ */
+export async function removeUserFromTeam(req, res) {
+    const { user_id, reason } = req.body;
+    try {
+        if (req.session.role < ROLES.OWNER) {
+            return res.redirect('/dashboard?error=Insufficient%20Permissions');
+        }
+        await pool.query(
+            `UPDATE user_account SET team_id = NULL, role = $1 WHERE id = $2`,
+            [ROLES.PENDING, user_id]
+        );
+        // TODO: Create a notification for the user about their reason for removal waiting for notification table
+        await pool.query(
+            `INSERT INTO notifications (user_id, title, message, type, created_at) VALUES ($1, $2, $3, $4, NOW())`,
+            [user_id, 'Removed from Team: ' + req.session.team_name, reason, 'removal']
+        );
+        return res.redirect('/dashboard');
+
+    }
+    catch(err) {
+        console.error("Error removing user from team:", err);
+        return res.redirect('/dashboard?error=System%20Error');
+    }
+}
+
+
+/**
+ * Promotes or demotes a user to a specified role. 
+ * Handles role changes for MEMBER, LEAD, ADMIN, and OWNER.
+ * Note: Promoting to OWNER will also update the team's lead_id and demote the current owner to ADMIN.
+ * @param {Object} req - Express request object. Expects req.body.user_id and req.body.new_role.
+ * @param {Object} res - Express response object.
+ */
+export async function changeUserRole(req, res) {
+    const { user_id, new_role } = req.body;
     try {
 
-        const userExists = await pool.query(
-            "SELECT id FROM user_account WHERE id = $1",
-            [user_id]
-        );
-
-        if (userExists.rows.length === 0) {
-            return res.status(400).json({ success: false, message: "User not found" });
+        if (req.session.role < ROLES.ADMIN) {
+            return res.redirect('/dashboard?error=Insufficient%20Permissions');
         }
 
         const result = await pool.query(
-            `UPDATE team SET lead_id = $1 WHERE id = (SELECT team_id FROM user_account WHERE id = $1) RETURNING id, lead_id;
-             UPDATE user_account SET role = $2 WHERE id = $1
-            `,
-            [user_id, ROLES.OWNER]
+            "UPDATE user_account SET role = $1 WHERE id = $2 RETURNING id, user_name, email, role",
+            [new_role, user_id]
         );
-        res.status(200).json({ success: true, message: "User promoted to team owner", data: result.rows[0] });
+        if (new_role === ROLES.OWNER && result.rows.length > 0) {
+            await pool.query(
+                `UPDATE team SET lead_id = $1 WHERE id = (SELECT team_id FROM user_account WHERE id = $1)
+                 UPDATE user_account SET role = $2 WHERE id = $3`,
+                 [user_id, ROLES.ADMIN, req.session.user_id]
+            );
+        }
+        return res.redirect('/dashboard');
     }
-    catch (error) {
-        console.error("Error promoting user to owner:", error);
-        res.status(500).json({ success: false, message: "Failed to promote user to owner" });
+    catch(err) {
+        console.error("Error promoting user:", err);
+        return res.redirect('/dashboard?error=Failed%20to%20promote%20user');
     }
 }
-

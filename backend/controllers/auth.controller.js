@@ -15,7 +15,15 @@ const ROLES = {
   OWNER: 4,
 }
 
-// User Signup
+/**
+ * Handles new user registration.
+ * 1. Validates password length, match, and complexity.
+ * 2. Checks for existing email in the database.
+ * 3. Hashes password and inserts user with PENDING (0) role.
+ * 4. Initializes session data and redirects to dashboard.
+ * @param {Object} req - Express request object. Expects req.body: {user_name, email, password, confirmPassword}.
+ * @param {Object} res - Express response object.
+ */
 export async function signup(req, res) {
   const { user_name, email, password, confirmPassword } = req.body;
   const clean_email = email.trim().toLowerCase();
@@ -25,7 +33,6 @@ export async function signup(req, res) {
   }
 
   if (password !== confirmPassword) {
-    // Redirect back with the error and the token (so they don't lose their place)
     return res.redirect(`/signup?error=Passwords%20do%20not%20match`);
   }
 
@@ -33,27 +40,21 @@ export async function signup(req, res) {
     return res.redirect('/signup?error=Password%20does%20not%20requirements');
   }
 
-  // Check if all fields are filled in
   if (!user_name || !clean_email || !password) {
     return res.redirect(`/signup?error=Missing%20field`);
-    //return res.status(400).json({ error: 'Missing required fields.' });
   }
 
-  // Check if email is valid
   if (!EMAIL_REGEX.test((clean_email))) {
     return res.redirect(`/signup?error=Invalid%20email`);
-    //return res.status(400).json({ error: 'Invalid email.' })
   }
 
   try {
-    // Ensure user doesn't already exist
     const existingUser = await pool.query(
       'SELECT id FROM user_account WHERE email = $1',
       [clean_email]
     );
     if (existingUser.rows.length > 0) {
       return res.redirect('/signup?error=User%20Already%20Exists');
-      //return res.status(409).json({ error: 'User already exists' });
     }
 
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
@@ -79,44 +80,42 @@ export async function signup(req, res) {
       }
       res.redirect("/dashboard");
     });
-    // res.status(201).json({
-    //   message: 'User created',
-    //   user: result.rows[0],
-    // });
   } catch (err) {
     console.error(err);
     return res.redirect('/signup?error=Server%20Error');
-    //res.status(500).json({ error: 'Server error' });
   }
 }
 
-// Helper function to check the password
+/**
+ * Internal helper to verify plain text password against stored hash.
+ * @param {string} plainPassword - User-provided password.
+ * @param {string} hashedPassword - Hash from database.
+ * @param {Object} res - Express response object.
+ * @returns {Promise<boolean>} True if match, false otherwise.
+ */
 async function checkPassword(plainPassword, hashedPassword, res) {
   try {
-    // bcrypt.compare returns a boolean (true/false)
     const isMatch = await bcrypt.compare(plainPassword, hashedPassword);
-
-    if (isMatch) {
-      return true;
-    } else {
-      return false;
-    }
+    return isMatch;
   } catch (err) {
     res.status(400).json({ error: 'Invalid credentials' })
   }
 }
 
-// User login function
+/**
+ * Handles user authentication.
+ * 1. Verifies user existence and password hash.
+ * 2. Fetches associated team name if a team_id exists.
+ * 3. Populates session with user_id, user_name, role, and team details.
+ * @param {Object} req - Express request object. Expects req.body: {email, password}.
+ * @param {Object} res - Express response object.
+ */
 export async function login(req, res) {
   const { email, password } = req.body;
-
   const clean_email = email.trim().toLowerCase();
-
-  // Check if all fields are filled in
 
   if (!clean_email || !password) {
     return res.redirect(`/login?error=Missing%20field`);
-    //return res.status(400).json({ error: 'Missing required fields.' });
   }
 
   try {
@@ -129,11 +128,12 @@ export async function login(req, res) {
 
     if (!user) {
       return res.redirect(`/login?error=Invalid%20Credentials`);
-      //return res.status(400).json({ error: 'Invalid credentials' });
     }
+    
     req.session.team = null;
     req.session.role = user.role;
     req.session.team_id = user.team_id;
+
     if (user.team_id != null) {
       const team = await pool.query(
         'SELECT name, lead_id FROM team WHERE id = $1',
@@ -142,7 +142,6 @@ export async function login(req, res) {
       req.session.team = team.rows[0].name;
     }
 
-    //Ensure that the password is correct
     if (await checkPassword(password, user.password_hash, res)) {
       req.session.user_id = user.id;
       req.session.user_name = user.user_name;
@@ -150,47 +149,42 @@ export async function login(req, res) {
         if (err) {
           console.error("Session Save Error:", err);
           return res.redirect(`/login?error=Server%20Error`);
-          //return res.status(500).send("Error saving session");
         }
-        req.session.save((err) => {
-          if (err) {
-            console.error('Session Save Error:', err);
-            return res.redirect(`/login?error=Server%20Error`);
-          }
-        });
         res.redirect('/dashboard');
       });
-      // res.status(200).json({
-      //   message: 'Login Successful',
-      //   user: { id: user.id, user_name: user.user_name },
-      // });
     }
     else {
       return res.redirect(`/login?error=Invalid%20Credentials`);
-      //res.status(400).json({ error: 'Invalid credentials' })
     }
   }
   catch (err) {
     return res.redirect(`/login?error=Server%20Error`);
-    //res.status(500).json({ error: 'Server error' });
   }
 }
 
-// User logout function
+/**
+ * Destroys the user session and clears the session cookie.
+ * @param {Object} req - Express request object.
+ * @param {Object} res - Express response object.
+ */
 export async function logout(req, res) {
   req.session.destroy((err) => {
     if (err) {
       console.error("Logout Error:", err);
       return res.redirect('/dashboard?error=Server%20Error');
-      //return res.status(500).json({ error: 'Could not log out' });
     }
     res.clearCookie('connect.sid');
-
     res.redirect('/login?message=logged-out');
   });
 }
 
-// Create a new team
+/**
+ * Creates a new team and assigns the creator as the OWNER.
+ * Uses a SQL transaction (BEGIN/COMMIT) to ensure both the team is created
+ * and the user is updated simultaneously.
+ * @param {Object} req - Express request object. Expects req.body.team_name.
+ * @param {Object} res - Express response object.
+ */
 export async function createTeam(req, res) {
   const client = await pool.connect();
   const { team_name } = req.body;
@@ -201,31 +195,28 @@ export async function createTeam(req, res) {
   }
 
   try {
-
-    //Check if team already exists
     const teamResult = await pool.query(
       'SELECT id FROM team WHERE name = $1',
       [team_name]
     );
     if (teamResult.rows.length > 0) {
-      await client.query('ROLLBACK');
       return res.redirect('/create-team?error=Team%20Already%20Exists');
-      //return res.status(400).json({ error: 'Team already exists' });
     }
 
-    client.query('BEGIN');
+    await client.query('BEGIN');
 
-    const result = await pool.query(
+    const result = await client.query(
       "INSERT INTO team (name, lead_id) VALUES ($1, $2) RETURNING id, name, lead_id",
       [team_name, user_id]
     );
 
-    await pool.query(
+    await client.query(
       "UPDATE user_account SET team_id = $1, role = $2 WHERE id = $3",
       [result.rows[0].id, ROLES.OWNER, user_id]
     );
 
     await client.query('COMMIT');
+    
     req.session.team = team_name;
     req.session.team_id = result.rows[0].id;
     req.session.role = ROLES.OWNER;
@@ -234,22 +225,25 @@ export async function createTeam(req, res) {
         console.error("Session Save Error:", err);
         return res.redirect(`/create-team?error=Server%20Error`);
       }
+      res.redirect("/dashboard");
     });
-    res.redirect("/dashboard");
-    //res.status(201).json({message: "Team created", team: result.rows[0]});
   }
   catch (err) {
     await client.query('ROLLBACK');
     console.error(err);
     return res.redirect('/create-team?error=Server%20Error');
-    //res.status(500).json({ error: 'Server error' });
   }
   finally {
     client.release();
   }
 }
 
-// Allows a user to request to join a team after being rejected or removed from a team
+/**
+ * Submits a request to join an existing team.
+ * Sets the user's team_id but leaves role as PENDING (0) until approved by lead.
+ * @param {Object} req - Express request object. Expects req.body.team_name.
+ * @param {Object} res - Express response object.
+ */
 export async function teamRequest(req, res) {
   const { team_name } = req.body;
   const user_id = req.session.user_id;
@@ -265,7 +259,6 @@ export async function teamRequest(req, res) {
     );
     if (teamResult.rows.length === 0) {
       return res.redirect('/join-team?error=Team%20Not%20Found');
-      //return res.status(400).json({ error: 'Team not found' });
     }
     const team_id = teamResult.rows[0].id;
     await pool.query(
@@ -279,13 +272,11 @@ export async function teamRequest(req, res) {
         console.error("Session Save Error:", err);
         return res.redirect(`/join-team?error=Server%20Error`);
       }
+      res.redirect("/dashboard");
     });
-    res.redirect("/dashboard");
-    //res.status(200).json({ message: 'Team request submitted' });
   }
   catch (err) {
     console.error(err);
     return res.redirect('/join-team?error=Server%20Error');
-    //res.status(500).json({ error: 'Server error' });
   }
 }

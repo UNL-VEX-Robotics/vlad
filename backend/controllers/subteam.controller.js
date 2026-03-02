@@ -1,6 +1,13 @@
 import pool from '../db.js';
 
-// Creates a new subteam under the user's team with the user who created the subteam as the lead
+/**
+ * Creates a new subteam under the user's current team.
+ * 1. Validates that a subteam name was provided.
+ * 2. Checks for name collisions within the same parent team.
+ * 3. Inserts the subteam and assigns the creator (session user) as the subteam lead.
+ * @param {Object} req - Express request object. Expects req.body.subteamName and req.session.team_id.
+ * @param {Object} res - Express response object. Redirects to dashboard on success.
+ */
 export async function createSubteam(req, res){
     const { subteamName } = req.body;
 
@@ -35,7 +42,13 @@ export async function createSubteam(req, res){
     }
 }
 
-// Deletes a subteam by id and removes all projects and tasks associated with the subteam
+/**
+ * Deletes a subteam by its ID.
+ * Note: Database constraints (CASCADE) should handle the removal of 
+ * associated projects and tasks.
+ * @param {Object} req - Express request object. Expects req.body.id (subteam ID).
+ * @param {Object} res - Express response object.
+ */
 export async function deleteSubteam(req, res) {
     const subteamID = req.body.id;
 
@@ -52,7 +65,14 @@ export async function deleteSubteam(req, res) {
     }
 }
 
-// Edits a subteams name by id and new name, checks to make sure the new name is not already taken by another subteam under the same team before updating the name
+/**
+ * Updates the name of an existing subteam.
+ * 1. Validates the new name is provided.
+ * 2. Ensures the new name isn't already used by another subteam in the same parent team.
+ * 3. Updates the subteam record.
+ * @param {Object} req - Express request object. Expects req.body: {subteamID, newSubteamName}.
+ * @param {Object} res - Express response object.
+ */
 export async function editSubteam(req, res) {
     const { subteamID, newSubteamName } = req.body;
 

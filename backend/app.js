@@ -383,6 +383,16 @@ app.get('/login', (req, res) => {
 
 // Main Dashboard Page
 app.get('/dashboard', isAuthenticated, async (req, res) => {
+  const error = req.query.error; // Catch the error message from the URL
+
+  let errorMessageHtml = '';
+  if (error) {
+    errorMessageHtml = `
+    <div class="alert-box">
+      ${error}
+    </div>
+  `;
+  }
   try {
     let memberListHtml = '';
     let subteamHtml = '';
@@ -393,24 +403,55 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
     const isApproved = userRole > 0;
 
     if (req.session.team && isApproved) {
-      // 1. Get Members
+      // 1. Get Members - Added ORDER BY role DESC (higher roles first), then by name
       const membersResult = await pool.query(
-        `SELECT id, user_name FROM user_account 
+        `SELECT id, user_name, role FROM user_account 
           WHERE team_id = (SELECT id FROM team WHERE name = $1) 
-          AND role != 0`,
+          AND role != 0
+          ORDER BY role DESC, user_name ASC`,
         [req.session.team]
       );
-      memberListHtml = membersResult.rows.map(m => `
+
+      memberListHtml = membersResult.rows.map(m => {
+        const roleLabels = { 1: 'Member', 2: 'Lead', 3: 'Admin', 4: 'Owner' };
+        
+        let actionButtons = '';
+        if (userRole >= 3 && m.id !== req.session.user_id) {
+          
+          if (m.role < 3) {
+            actionButtons += `
+              <form action="/admin/change-role" method="POST" style="margin:0;">
+                <input type="hidden" name="user_id" value="${m.id}">
+                <input type="hidden" name="new_role" value="${m.role + 1}">
+                <button type="submit">Promote to ${roleLabels[m.role + 1]}</button>
+              </form>`;
+          }
+
+          const canDemote = m.role > 1 && (userRole > m.role);
+          
+          if (canDemote) {
+            actionButtons += `
+              <form action="/admin/change-role" method="POST" style="margin:0;">
+                <input type="hidden" name="user_id" value="${m.id}">
+                <input type="hidden" name="new_role" value="${m.role - 1}">
+                <button type="submit" style="color:var(--accent-red);">Demote to ${roleLabels[m.role - 1]}</button>
+              </form>`;
+          }
+        }
+
+        return `
         <li class="member-row">
-          <span>${m.user_name}</span>
+          <span>${m.user_name} <small style="color:var(--text-muted); font-size:0.7rem;">(${roleLabels[m.role]})</small></span>
           <div class="menu-container">
             <button class="dot-btn" onclick="toggleMenu(event, 'menu-${m.id}')">⋮</button>
             <div id="menu-${m.id}" class="dropdown-menu">
                 <form action="/profile" method="GET" style="margin:0;"><input type="hidden" name="user_id" value="${m.id}"><button type="submit">View Profile</button></form>
+                ${actionButtons}
                 <form action="/report" method="POST" style="margin:0;"><input type="hidden" name="user_id" value="${m.id}"><button type="submit">Report</button></form>
             </div>
           </div>
-        </li>`).join('');
+        </li>`;
+      }).join('');
 
       // 2. Get Subteams
       const subteamsResult = await pool.query(
@@ -440,6 +481,8 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
         <style>
           body { display: flex; flex-direction: row; position: relative; }
           .main-content { flex: 1; padding: 40px; }
+          .dropdown-menu button { width: 100%; text-align: left; background: none; border: none; padding: 8px 12px; font-size: 0.85rem; cursor: pointer; color: var(--text-main); }
+          .dropdown-menu button:hover { background: var(--bg-body); }
         </style>
       </head>
       <body>
@@ -448,9 +491,6 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
                 <h3 style="color: var(--accent-red); margin-top: 0;">Confirm Deletion</h3>
                 <p style="color: var(--text-main); font-size: 0.9rem;">
                     Are you sure you want to delete subteam <strong id="deleteSubteamName"></strong>?
-                </p>
-                <p style="color: var(--text-muted); font-size: 0.75rem;">
-                    Warning: All associated projects and tasks will be permanently purged.
                 </p>
                 <div class="modal-btns">
                     <button class="secondary-btn" onclick="closeModal()">Cancel</button>
@@ -476,6 +516,7 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
         </div>
 
         <div class="main-content">
+          ${errorMessageHtml}
           <h2 style="color: var(--text-heading);">Dashboard</h2>
           ${approvalMessage}
 
