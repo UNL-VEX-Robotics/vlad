@@ -12,16 +12,6 @@ const ROLES = {
     OWNER: 4,
 }
 
-/*
-TODO: test all admin functions 
-    Tested functions:
-        rejectUserRequest
-        acceptUserRequest
-    Untested:
-        changeUserRole
-        removeUserFromTeam
-*/
-
 /**
  * Accepts a user join request.
  * Promotes a user from PENDING (0) to MEMBER (1).

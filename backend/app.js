@@ -4,6 +4,7 @@ import authRoutes from './routes/auth.js';
 import emailRoutes from './routes/reset.js';
 import adminRoutes from './routes/admin.js';
 import subteamRoutes from './routes/subteam.js';
+import notificationRoutes from './routes/notifications.js';
 import session from 'express-session';
 import pgSession from 'connect-pg-simple';
 import { configDotenv } from 'dotenv';
@@ -100,6 +101,9 @@ app.use(admin, adminRoutes);
 
 const subteam = '/subteam';
 app.use(subteam, subteamRoutes);
+
+const notifications = '/notifications';
+app.use(notifications, notificationRoutes);
 
 
 app.get('/health', async (req, res) => {
@@ -415,8 +419,8 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
     <div class="notification-item" style="background: var(--bg-card); border: 1px solid var(--border-color); border-left: 4px solid var(--accent-red); padding: 12px; border-radius: 6px; margin-bottom: 10px; position: relative;">
       <h4 style="margin: 0 0 3px 0; font-size: 0.9rem; color: var(--text-heading);">${n.title}</h4>
       <p style="margin: 0; font-size: 0.85rem; color: var(--text-main); line-height:1.4;">${n.message}</p>
-      <form action="/notifications/dismiss" method="POST" style="margin-top: 8px;">
-        <input type="hidden" name="notif_id" value="${n.id}">
+      <form action="/notifications/mark-as-read" method="POST" style="margin-top: 8px;">
+        <input type="hidden" name="notification_id" value="${n.id}">
         <button type="submit" style="background:none; border:none; color:var(--text-muted); font-size:0.75rem; cursor:pointer; text-decoration:underline; padding:0;">Mark as read</button>
       </form>
     </div>
@@ -428,7 +432,7 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
         <label style="font-size:0.7rem; font-weight:bold; color:var(--text-muted); text-transform:uppercase; letter-spacing: 0.05rem;">
           Notifications (${notifResult.rows.length})
         </label>
-        <form action="/notifications/dismiss-all" method="POST" style="margin:0;">
+        <form action="/notifications/mark-all-as-read" method="POST" style="margin:0;">
           <button type="submit" style="background:none; border:none; color:var(--accent-red); font-size:0.7rem; font-weight:bold; cursor:pointer; text-transform:uppercase;">
             Clear All
           </button>
