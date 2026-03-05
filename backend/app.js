@@ -413,7 +413,6 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
     );
 
     // Inside app.get('/dashboard')
-    // ... (previous logic for fetching notifResult)
 
     const notificationsList = notifResult.rows.map(n => `
     <div class="notification-item" style="background: var(--bg-card); border: 1px solid var(--border-color); border-left: 4px solid var(--accent-red); padding: 12px; border-radius: 6px; margin-bottom: 10px; position: relative;">
@@ -546,8 +545,17 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
             <button class="profile-trigger" onclick="toggleMenu(event, 'profile-menu')">
               Account: ${req.session.user_name} ▾
             </button>
-            <div id="profile-menu" class="dropdown-menu">
-              <form action="/auth/logout" method="POST" style="border-top: 1px solid var(--border-color);">
+            <div id="profile-menu" class="dropdown-menu" style="right: 0; width: 180px;">
+              <form action="/profile" method="GET" style="margin:0;">
+                <input type="hidden" name="user_id" value="${req.session.user_id}">
+                <button type="submit">My Profile</button>
+              </form>
+
+              <a href="/notifications" style="text-decoration: none;">
+                <button type="button">Notification Hub</button>
+              </a>
+
+              <form action="/auth/logout" method="POST" style="border-top: 1px solid var(--border-color); margin-top: 5px; padding-top: 5px;">
                 <button type="submit" style="color: var(--accent-red);">Log Out</button>
               </form>
             </div>
@@ -1134,6 +1142,7 @@ app.get('/reset-confirmation', (req, res) => {
   </body></html>`);
 });
 
+// Where team leads can create subteams for their team
 app.get('/create-subteam', isAuthenticated, requireRole(ROLES.ADMIN), (req, res) => {
   const error = req.query.error;
 
@@ -1171,6 +1180,132 @@ app.get('/create-subteam', isAuthenticated, requireRole(ROLES.ADMIN), (req, res)
         </div>
       </body>
     </html>`);
+});
+
+// A notification hub that allows users to see all their notifications in one place and mark them as read
+app.get('/notifications', isAuthenticated, async (req, res) => {
+    try {
+        const result = await pool.query(
+            `SELECT id, title, message, created_at, is_read 
+             FROM notifications 
+             WHERE user_id = $1 
+             AND created_at > NOW() - INTERVAL '30 days'
+             ORDER BY created_at DESC`,
+            [req.session.user_id]
+        );
+
+        const notifications = result.rows;
+        
+        const notifHtml = notifications.length > 0 ? notifications.map(n => `
+            <div class="notif-card ${n.is_read ? 'read' : 'unread'}" 
+                 style="background: var(--bg-card); border: 1px solid var(--border-color); padding: 18px; border-radius: 8px; margin-bottom: 15px; position: relative;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <h4 style="margin: 0; color: var(--text-heading); font-size: 1.05rem;">${n.title}</h4>
+                        <span style="font-size: 0.75rem; color: var(--text-muted);">
+                            ${new Date(n.created_at).toLocaleString()}
+                        </span>
+                    </div>
+                    <form action="/notifications/delete" method="POST" style="margin:0;">
+                        <input type="hidden" name="notification_id" value="${n.id}">
+                        <button type="submit" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size: 1.2rem; padding:0 5px;" title="Delete">×</button>
+                    </form>
+                </div>
+                
+                <p style="margin: 12px 0 0 0; font-size: 0.95rem; color: #ffffff; line-height: 1.5; opacity: 1;">${n.message}</p>
+                
+                ${!n.is_read ? `
+                    <form action="/notifications/mark-as-read" method="POST" style="margin-top: 15px;">
+                        <input type="hidden" name="notification_id" value="${n.id}">
+                        <input type="hidden" name="redirect" value="/notifications">
+                        <button type="submit" style="background:none; border:none; color:var(--accent-red); font-size: 0.75rem; font-weight:bold; cursor:pointer; text-transform:uppercase; padding:0;">
+                            Mark as read
+                        </button>
+                    </form>
+                ` : ''}
+            </div>
+        `).join('') : '<p style="text-align:center; color:var(--text-muted); margin-top: 3rem;">No recent notifications.</p>';
+
+        res.send(`
+            <html>
+                <head>
+                    ${commonStyles}
+                    <style>
+                        /* Centering the Hub Header */
+                        .hub-header {
+                            text-align: center;
+                            margin-bottom: 30px;
+                        }
+                        .unread { border-left: 4px solid var(--accent-red) !important; }
+                        .read { opacity: 0.8; }
+
+                        /* Reverted Global Action Button Styles */
+                        .global-actions {
+                            display: flex;
+                            justify-content: center;
+                            gap: 20px;
+                            margin-bottom: 25px;
+                        }
+                        .action-btn-reverted {
+                            background: none;
+                            border: none;
+                            color: var(--accent-red);
+                            font-size: 0.7rem;
+                            font-weight: bold;
+                            cursor: pointer;
+                            text-transform: uppercase;
+                            letter-spacing: 0.05rem;
+                        }
+                        
+                        .info-banner {
+                            background: rgba(255, 255, 255, 0.05);
+                            border: 1px dashed var(--border-color);
+                            padding: 10px;
+                            border-radius: 6px;
+                            text-align: center;
+                            font-size: 0.8rem;
+                            color: var(--text-muted);
+                            margin-bottom: 30px;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="container" style="max-width: 650px; margin: 50px auto; padding: 0 20px;">
+                        
+                        <div class="hub-header">
+                            <h2 style="color: var(--text-heading); margin-bottom: 10px;">Notification Hub</h2>
+                            
+                            <div class="global-actions">
+                                <form action="/notifications/mark-all-as-read" method="POST" style="margin:0;">
+                                    <button type="submit" class="action-btn-reverted">✓ Mark All Read</button>
+                                </form>
+                                <form action="/notifications/delete-all" method="POST" style="margin:0;" onsubmit="return confirm('Delete all notifications?')">
+                                    <button type="submit" class="action-btn-reverted">🗑 Delete All</button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <div class="info-banner">
+                            Notifications are automatically cleared after 30 days.
+                        </div>
+
+                        <div class="notif-list">
+                            ${notifHtml}
+                        </div>
+
+                        <div style="margin-top: 40px; text-align: center; border-top: 1px solid var(--border-color); padding-top: 30px;">
+                            <a href="/dashboard" style="text-decoration: none;">
+                                <button type="button" class="secondary-btn">Back to Dashboard</button>
+                            </a>
+                        </div>
+                    </div>
+                </body>
+            </html>
+        `);
+    } catch (err) {
+        console.error(err);
+        res.status(500).send("Error loading notifications");
+    }
 });
 
 export default app;

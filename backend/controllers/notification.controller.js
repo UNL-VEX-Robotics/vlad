@@ -35,11 +35,11 @@ export async function markAsRead(req, res) {
             "UPDATE notifications SET is_read = TRUE WHERE id = $1",
             [notification_id]
         );
-        return res.redirect('/dashboard');
+        return res.redirect('/notifications');
     }
     catch (err){
         console.error("Error marking notification as read: ", err);
-        return res.redirect('/dashboard?error=Server%20Error');
+        return res.redirect('/notifications?error=Server%20Error');
     }
 }
 
@@ -54,11 +54,11 @@ export async function markAllAsRead(req, res) {
             "UPDATE notifications SET is_read = TRUE WHERE user_id = $1",
             [req.session.user_id]
         );
-        return res.redirect('/dashboard');
+        return res.redirect('/notifications');
     }
     catch (err){
         console.error("Error marking all notifications as read: ", err);
-        return res.redirect('/dashboard?error=Server%20Error');
+        return res.redirect('/notifications?error=Server%20Error');
     }
 }
 
@@ -74,11 +74,11 @@ export async function deleteNotification(req, res) {
             "DELETE FROM notifications WHERE id = $1",
             [notification_id]
         );
-        return res.redirect('/dashboard');
+        return res.redirect('/notifications');
     }
     catch (err){
         console.error("Error deleting notification: ", err);
-        return res.redirect('/dashboard?error=Server%20Error');
+        return res.redirect('/notifications?error=Server%20Error');
     }
 }
 
@@ -93,11 +93,11 @@ export async function deleteAllNotifications(req, res) {
             "DELETE FROM notifications WHERE user_id = $1",
             [req.session.user_id]
         );
-        return res.redirect('/dashboard');
+        return res.redirect('/notifications');
     }
     catch (err){
         console.error("Error deleting all notifications: ", err);
-        return res.redirect('/dashboard?error=Server%20Error');
+        return res.redirect('/notifications?error=Server%20Error');
     }
 }
 
