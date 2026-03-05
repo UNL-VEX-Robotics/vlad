@@ -9,14 +9,13 @@ const ROLES = {
     OWNER: 4,
 }
 
-// Schedule a cron job to run every hour to clean up old notifications
 /** 
- * This cron job runs every day at 2:00 AM and deletes notifications that are older than 30 days from the database.
+ * This cron job runs every day at 2:00 AM Central Time and deletes notifications that are older than 30 days from the database.
  */
 nodeCron.schedule('0 2 * * *', async () => {
     try {
         await pool.query(
-            "DELETE FROM notifications WHERE created_at < NOW() - INTERVAL '1 days'"
+            "DELETE FROM notifications WHERE created_at < NOW() - INTERVAL '30 days'"
         );
     }
     catch (err) {

@@ -2,6 +2,7 @@ import nodemailer from 'nodemailer';
 import pool from '../db.js';
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
+import nodeCron from 'node-cron';
 
 const SALT_ROUNDS = 12;
 const EMAIL_REGEX = /\w*@(?:\w*.)+/;
@@ -24,12 +25,26 @@ const transporter = nodemailer.createTransport({
 })
 
 /**
+ * Empty the reset tokens from all user records after they expire. 
+ */
+nodeCron.schedule('0 2 * * *', async () => {
+  try {
+    await pool.query(
+      "UPDATE user_account SET reset_token = NULL, reset_expiry = NULL WHERE reset_expiry < NOW()"
+    );
+  }
+  catch (err) {
+    console.error("Error clearing expired reset tokens: ", err);
+  }
+});
+
+/**
  * Generates a password reset token and sends an email to the user.
  * 1. Validates the email format.
  * 2. Checks if the user exists in the database.
  * 3. Saves a 32-byte hex token and a 1-hour expiry to the user record.
  * 4. Sends a styled HTML email with a reset link.
- * * @param {Object} req - Express request object. Expects req.body.to (email).
+ * @param {Object} req - Express request object. Expects req.body.to (email).
  * @param {Object} res - Express response object. Redirects to status pages.
  */
 export async function sendResetPasswordEmail(req, res) {
@@ -112,7 +127,7 @@ export async function sendResetPasswordEmail(req, res) {
  * 3. Queries for a user with the matching token that has not expired.
  * 4. Hashes the new password using bcrypt.
  * 5. Updates the database and clears the reset token/expiry.
- * * @param {Object} req - Express request object. Expects req.body: {token, newPassword, confirmPassword}.
+ * @param {Object} req - Express request object. Expects req.body: {token, newPassword, confirmPassword}.
  * @param {Object} res - Express response object. Redirects to confirmation or error pages.
  */
 export async function resetPassword(req, res) {

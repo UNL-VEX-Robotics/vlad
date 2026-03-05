@@ -2,6 +2,7 @@ import bcrypt from 'bcrypt';
 import pool from '../db.js';
 import session from 'express-session';
 import pgSession from 'connect-pg-simple'
+import nodeCron from 'node-cron';
 
 
 const SALT_ROUNDS = 12;
@@ -280,3 +281,17 @@ export async function teamRequest(req, res) {
     return res.redirect('/join-team?error=Server%20Error');
   }
 }
+
+/**
+ * Deletes all expired sessions from the database. Scheduled to run dailty at 3:00 AM Central Time using node-cron.
+ */
+nodeCron.schedule('0 3 * * *', async () => {
+  try {
+    await pool.query(
+      'DELETE FROM sessions WHERE expire < NOW()'
+    );
+  }
+  catch (err) {
+    console.error("Error cleaning up expired sessions: ", err);
+  }
+});
