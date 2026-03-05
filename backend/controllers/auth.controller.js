@@ -3,18 +3,45 @@ import pool from '../db.js';
 import session from 'express-session';
 import pgSession from 'connect-pg-simple'
 import nodeCron from 'node-cron';
+import { withLayout } from '../views/layout.js';
+import { signupPage, loginPage, createTeamPage, joinTeamPage } from '../views/auth.view.js';
+import { ROLES, EMAIL_REGEX, SALT_ROUNDS, PASSWORD_REGEX } from '../constants.js';
 
+/**
+ * Renders the Signup Page (GET)
+ */
+export const renderSignup = (req, res) => {
+    const error = req.query.error;
+    const content = signupPage(error);
+    res.send(withLayout("Sign Up", content, req));
+};
 
-const SALT_ROUNDS = 12;
-const EMAIL_REGEX = /\w*@(?:\w*.)+/;
-const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-const ROLES = {
-  PENDING: 0,
-  MEMBER: 1,
-  LEAD: 2,
-  ADMIN: 3,
-  OWNER: 4,
-}
+/**
+ * Renders the Login Page (GET)
+ */
+export const renderLogin = (req, res) => {
+    const error = req.query.error;
+    const content = loginPage(error);
+    res.send(withLayout("Log In", content, req));
+};
+
+/**
+ * Renders the Create Team Page (GET)
+ */
+export const renderCreateTeam = (req, res) => {
+    const error = req.query.error;
+    const content = createTeamPage(error);
+    res.send(withLayout("Create Team", content, req));
+};
+
+/**
+ * Renders the Join Team Page (GET)
+ */
+export const renderJoinTeam = (req, res) => {
+    const error = req.query.error;
+    const content = joinTeamPage(error);
+    res.send(withLayout("Join Team", content, req));
+};
 
 /**
  * Handles new user registration.
@@ -37,7 +64,7 @@ export async function signup(req, res) {
     return res.redirect(`/signup?error=Passwords%20do%20not%20match`);
   }
 
-  if (!passwordRegex.test(password)){
+  if (!PASSWORD_REGEX.test(password)){
     return res.redirect('/signup?error=Password%20does%20not%20requirements');
   }
 
@@ -295,3 +322,4 @@ nodeCron.schedule('0 3 * * *', async () => {
     console.error("Error cleaning up expired sessions: ", err);
   }
 });
+
