@@ -1,16 +1,31 @@
 import pool from '../db.js';
+import { ROLES } from '../utils/constants.js';
+import { withLayout } from '../views/layout.js';
+import { teamRequestsPage } from '../views/admin.view.js';
 
 /**
- * Global Role Constants
- * Defines the hierarchy level for all users.
+ * Renders the user Team Requests page.
+ * @param {Object} req - The request object.
+ * @param {Object} res - The response object.
  */
-const ROLES = {
-    PENDING: 0,
-    MEMBER: 1,
-    LEAD: 2,
-    ADMIN: 3,
-    OWNER: 4,
-}
+export const renderTeamRequests = async (req, res) => {
+    try {
+        // Fetch users who are assigned to this team but still have role 0 (Pending)
+        const requests = await pool.query(
+            `SELECT u.id, u.user_name, u.email 
+             FROM user_account u 
+             JOIN team t ON u.team_id = t.id 
+             WHERE t.name = $1 AND u.role = 0`,
+            [req.session.team]
+        );
+
+        const content = teamRequestsPage(requests.rows);
+        res.send(withLayout("Team Requests", content, req));
+    } catch (err) {
+        console.error("Error fetching team requests:", err);
+        res.status(500).send("Error loading requests");
+    }
+};
 
 /**
  * Accepts a user join request.
@@ -26,7 +41,7 @@ export async function acceptUserRequest(req, res) {
             [ROLES.MEMBER, user_id]
         );
 
-        res.redirect('/team-requests');
+        res.redirect('/admin/team-requests');
     } catch (error) {
         console.error("Error approving user:", error);
         return res.redirect('/team-requests?error=Server%20Error');
@@ -50,11 +65,11 @@ export async function rejectUserRequest(req, res) {
             `INSERT INTO notifications (user_id, title, message, type, created_at) VALUES ($1, $2, $3, $4, NOW())`,
             [user_id, 'Join Request Rejected: ' + req.session.team, 'Your request to join ' + req.session.team + ' was rejected by the team lead. You can try joining a different team or contact your team lead for more information.', 'rejection']
         );
-        res.redirect('/team-requests');
+        res.redirect('/admin/team-requests');
     }
     catch (error) {
         console.error("Error rejecting user:", error);
-        return res.redirect('/team-requests?error=Server%20Error');
+        return res.redirect('/admin/team-requests?error=Server%20Error');
     }
 }
 

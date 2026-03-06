@@ -1,4 +1,14 @@
 import pool from '../db.js';
+import { withLayout } from '../views/layout.js';
+import { createSubteamPage } from '../views/subteam.view.js';
+
+export const renderCreateSubteam = (req, res) => {
+    const error = req.query.error;
+    const primaryTeam = req.session.team;
+
+    const content = createSubteamPage(primaryTeam, error);
+    res.send(withLayout("Initialize Subteam", content, req));
+};
 
 /**
  * Creates a new subteam under the user's current team.
@@ -12,7 +22,7 @@ export async function createSubteam(req, res){
     const { subteamName } = req.body;
 
     if (!subteamName) {
-        return res.redirect(`/create-subteam?error=Missing%20field`);
+        return res.redirect(`/subteam/create-subteam?error=Missing%20field`);
     }
 
     try{
@@ -22,7 +32,7 @@ export async function createSubteam(req, res){
         );
 
         if (existingSubteam.rows.length > 0) {
-            return res.redirect('/create-subteam?error=Subteam%20already%20exists');
+            return res.redirect('/subteam/create-subteam?error=Subteam%20already%20exists');
         }
 
         const result = await pool.query(
@@ -38,7 +48,7 @@ export async function createSubteam(req, res){
     }
     catch(err) {
         console.error(err);
-        return res.redirect('/create-subteam?error=Server%20Error');
+        return res.redirect('/subteam/create-subteam?error=Server%20Error');
     }
 }
 

@@ -1,7 +1,7 @@
 import pool from '../db.js';
 import { withLayout } from '../views/layout.js';
 import { dashboardPage, profilePage } from '../views/user.view.js';
-import { ROLES } from '../constants.js';
+import { ROLES } from '../utils/constants.js';
 
 /**
  * Renders the user dashboard page.

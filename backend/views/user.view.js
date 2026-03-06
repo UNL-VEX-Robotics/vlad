@@ -1,4 +1,4 @@
-import { ROLES } from '../constants.js';
+import { ROLES } from '../utils/constants.js';
 
 /**
  * SUB-RENDERER: Individual Notification Items
@@ -135,8 +135,8 @@ export const dashboardPage = (data) => {
             ${(!user.team) ? `
                 <div class="card" style="margin:0; max-width:400px;">
                     <h3>Get Started</h3>
-                    <form action="/create-team" method="GET"><button type="submit">Create Team</button></form>
-                    <form action="/join-team" method="GET"><button type="submit" class="secondary-btn" style="margin-top:10px;">Join Team</button></form>
+                    <form action="/auth/create-team" method="GET"><button type="submit">Create Team</button></form>
+                    <form action="/auth/join-team" method="GET"><button type="submit" class="secondary-btn" style="margin-top:10px;">Join Team</button></form>
                 </div>
             ` : `
                 <h3 style="color: var(--text-muted); font-size: 0.9rem; text-transform: uppercase;">Subteams</h3>
@@ -148,7 +148,7 @@ export const dashboardPage = (data) => {
                                 <div class="menu-container">
                                     <button class="dot-btn" onclick="toggleMenu(event, 'sub-${s.id}')">⋮</button>
                                     <div id="sub-${s.id}" class="dropdown-menu">
-                                        <form action="/edit-subteam" method="GET" style="margin:0;"><input type="hidden" name="id" value="${s.id}"><button type="submit">Edit Name</button></form>
+                                        <form action="/subteam/edit-subteam" method="GET" style="margin:0;"><input type="hidden" name="id" value="${s.id}"><button type="submit">Edit Name</button></form>
                                         <button type="button" onclick="confirmDelete('${s.id}', '${s.name}')" style="color:var(--accent-red);">Delete</button>
                                     </div>
                                 </div>
@@ -156,7 +156,7 @@ export const dashboardPage = (data) => {
                         </div>
                     `).join('')}
                     ${user.role > 2 ? `
-                        <a href="/create-subteam" style="text-decoration:none;">
+                        <a href="/subteam/create-subteam" style="text-decoration:none;">
                             <div class="subteam-card" style="border: 2px dashed var(--border-color); justify-content:center; color: var(--accent-red); cursor:pointer;">
                                 + Create Subteam
                             </div>
@@ -172,7 +172,7 @@ export const dashboardPage = (data) => {
             </h3>
             
             ${user.role > 2 ? `
-                <form action="/team-requests" method="GET">
+                <form action="/admin/team-requests" method="GET">
                     <button type="submit" class="manage-btn">Manage Requests</button>
                 </form>
             ` : ''}
@@ -303,8 +303,9 @@ export const profilePage = (user, sessionUser, error, ROLES) => {
             <div class="modal-content">
                 <h3 style="color: var(--accent-red); margin-top: 0;">Transfer Ownership</h3>
                 <p>Are you sure you want to transfer ownership to <strong>${user.user_name}</strong>?</p>
-                <form action="/admin/transfer-ownership" method="POST">
-                    <input type="hidden" name="new_owner_id" value="${user.id}">
+                <form action="/admin/change-role" method="POST">
+                    <input type="hidden" name="user_id" value="${user.id}">
+                    <input type="hidden" name="new_role" value="${ROLES.OWNER}">
                     <div class="modal-btns">
                         <button type="button" class="secondary-btn" onclick="closeModal('transferModal')">Cancel</button>
                         <button type="submit" style="background: var(--accent-red);">Confirm Transfer</button>

@@ -1,13 +1,35 @@
 import pool from '../db.js';
 import nodeCron from 'node-cron';
+import { ROLES } from '../utils/constants.js';
+import { withLayout } from '../views/layout.js';
+import { notificationsPage } from '../views/notification.view.js';
 
-const ROLES = {
-    PENDING: 0,
-    MEMBER: 1,
-    LEAD: 2,
-    ADMIN: 3,
-    OWNER: 4,
-}
+// Need to figure out a way to clear notifications from the dashboard when they are marked as read because function brings them to notifications 
+// page when it should bring them to the dashboard if they are on the dashboard and the notifications page when on the notifications page.
+
+/**
+ * This renders the notifications page.
+ * @param {Object} req - Express request object. Expects req.session.user_id to identify the user.
+ * @param {Object} res - Express response object. Renders the notifications page with the user's notifications.
+ */
+export const renderNotifications = async (req, res) => {
+    try {
+        const result = await pool.query(
+            `SELECT id, title, message, created_at, is_read 
+             FROM notifications 
+             WHERE user_id = $1 
+             AND created_at > NOW() - INTERVAL '30 days'
+             ORDER BY created_at DESC`,
+            [req.session.user_id]
+        );
+
+        const content = notificationsPage(result.rows);
+        res.send(withLayout("Notification Hub", content, req));
+    } catch (err) {
+        console.error("Error loading notifications:", err);
+        res.status(500).send("Error loading notifications");
+    }
+};
 
 /** 
  * This cron job runs every day at 2:00 AM Central Time and deletes notifications that are older than 30 days from the database.

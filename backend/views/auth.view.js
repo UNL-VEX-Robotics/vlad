@@ -38,7 +38,7 @@ export const signupPage = (error) => {
                 
                 <input type="submit" value="Create Account" />
             </form>
-            <form method="GET" action="/login">
+            <form method="GET" action="/auth/login">
                 <button type="submit" class="secondary-btn">Already have an account? Login</button>
             </form>
         </div>
@@ -87,7 +87,7 @@ export const loginPage = (error) => {
                 <form action="/reset/forgot-password" method="GET">
                     <button type="submit" class="secondary-btn">Forgot Password?</button>
                 </form>
-                <form action="/signup" method="GET">
+                <form action="/auth/signup" method="GET">
                     <button type="submit" class="secondary-btn">New here? Signup</button>
                 </form>
             </div>

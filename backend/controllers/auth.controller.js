@@ -5,7 +5,7 @@ import pgSession from 'connect-pg-simple'
 import nodeCron from 'node-cron';
 import { withLayout } from '../views/layout.js';
 import { signupPage, loginPage, createTeamPage, joinTeamPage } from '../views/auth.view.js';
-import { ROLES, EMAIL_REGEX, SALT_ROUNDS, PASSWORD_REGEX } from '../constants.js';
+import { ROLES, EMAIL_REGEX, SALT_ROUNDS, PASSWORD_REGEX } from '../utils/constants.js';
 
 /**
  * Renders the Signup Page (GET)
@@ -57,23 +57,23 @@ export async function signup(req, res) {
   const clean_email = email.trim().toLowerCase();
 
   if (password.length < 8){
-    return res.redirect(`/signup?error=Password%20must%20be%20at%20least%208%20characters`);
+    return res.redirect(`/auth/signup?error=Password%20must%20be%20at%20least%208%20characters`);
   }
 
   if (password !== confirmPassword) {
-    return res.redirect(`/signup?error=Passwords%20do%20not%20match`);
+    return res.redirect(`/auth/signup?error=Passwords%20do%20not%20match`);
   }
 
   if (!PASSWORD_REGEX.test(password)){
-    return res.redirect('/signup?error=Password%20does%20not%20requirements');
+    return res.redirect('/auth/signup?error=Password%20does%20not%20requirements');
   }
 
   if (!user_name || !clean_email || !password) {
-    return res.redirect(`/signup?error=Missing%20field`);
+    return res.redirect(`/auth/signup?error=Missing%20field`);
   }
 
   if (!EMAIL_REGEX.test((clean_email))) {
-    return res.redirect(`/signup?error=Invalid%20email`);
+    return res.redirect(`/auth/signup?error=Invalid%20email`);
   }
 
   try {
@@ -82,7 +82,7 @@ export async function signup(req, res) {
       [clean_email]
     );
     if (existingUser.rows.length > 0) {
-      return res.redirect('/signup?error=User%20Already%20Exists');
+      return res.redirect('/auth/signup?error=User%20Already%20Exists');
     }
 
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
@@ -104,13 +104,13 @@ export async function signup(req, res) {
     req.session.save((err) => {
       if (err) {
         console.error("Session Save Error:", err);
-        return res.redirect(`/signup?error=Server%20Error`);
+        return res.redirect(`/auth/signup?error=Server%20Error`);
       }
       res.redirect("/dashboard");
     });
   } catch (err) {
     console.error(err);
-    return res.redirect('/signup?error=Server%20Error');
+    return res.redirect('/auth/signup?error=Server%20Error');
   }
 }
 
@@ -143,7 +143,7 @@ export async function login(req, res) {
   const clean_email = email.trim().toLowerCase();
 
   if (!clean_email || !password) {
-    return res.redirect(`/login?error=Missing%20field`);
+    return res.redirect(`/auth/login?error=Missing%20field`);
   }
 
   try {
@@ -155,7 +155,7 @@ export async function login(req, res) {
     const user = userResult.rows[0];
 
     if (!user) {
-      return res.redirect(`/login?error=Invalid%20Credentials`);
+      return res.redirect(`/auth/login?error=Invalid%20Credentials`);
     }
     
     req.session.team = null;
@@ -176,17 +176,17 @@ export async function login(req, res) {
       req.session.save((err) => {
         if (err) {
           console.error("Session Save Error:", err);
-          return res.redirect(`/login?error=Server%20Error`);
+          return res.redirect(`/auth/login?error=Server%20Error`);
         }
         res.redirect('/dashboard');
       });
     }
     else {
-      return res.redirect(`/login?error=Invalid%20Credentials`);
+      return res.redirect(`/auth/login?error=Invalid%20Credentials`);
     }
   }
   catch (err) {
-    return res.redirect(`/login?error=Server%20Error`);
+    return res.redirect(`/auth/login?error=Server%20Error`);
   }
 }
 
@@ -202,7 +202,7 @@ export async function logout(req, res) {
       return res.redirect('/dashboard?error=Server%20Error');
     }
     res.clearCookie('connect.sid');
-    res.redirect('/login?message=logged-out');
+    res.redirect('/auth/login?message=logged-out');
   });
 }
 
@@ -219,7 +219,7 @@ export async function createTeam(req, res) {
   const user_id = req.session.user_id;
   
   if (!team_name) {
-    return res.redirect(`/create-team?error=Missing%20field`);
+    return res.redirect(`/auth/create-team?error=Missing%20field`);
   }
 
   try {
@@ -228,7 +228,7 @@ export async function createTeam(req, res) {
       [team_name]
     );
     if (teamResult.rows.length > 0) {
-      return res.redirect('/create-team?error=Team%20Already%20Exists');
+      return res.redirect('/auth/create-team?error=Team%20Already%20Exists');
     }
 
     await client.query('BEGIN');
@@ -251,7 +251,7 @@ export async function createTeam(req, res) {
     req.session.save((err) => {
       if (err) {
         console.error("Session Save Error:", err);
-        return res.redirect(`/create-team?error=Server%20Error`);
+        return res.redirect(`/auth/create-team?error=Server%20Error`);
       }
       res.redirect("/dashboard");
     });
@@ -259,7 +259,7 @@ export async function createTeam(req, res) {
   catch (err) {
     await client.query('ROLLBACK');
     console.error(err);
-    return res.redirect('/create-team?error=Server%20Error');
+    return res.redirect('/auth/create-team?error=Server%20Error');
   }
   finally {
     client.release();
@@ -277,7 +277,7 @@ export async function teamRequest(req, res) {
   const user_id = req.session.user_id;
 
   if (!team_name) {
-    return res.redirect(`/join-team?error=Missing%20field`);
+    return res.redirect(`/auth/join-team?error=Missing%20field`);
   }
 
   try {
@@ -286,7 +286,7 @@ export async function teamRequest(req, res) {
       [team_name]
     );
     if (teamResult.rows.length === 0) {
-      return res.redirect('/join-team?error=Team%20Not%20Found');
+      return res.redirect('/auth/join-team?error=Team%20Not%20Found');
     }
     const team_id = teamResult.rows[0].id;
     await pool.query(
@@ -298,14 +298,14 @@ export async function teamRequest(req, res) {
     req.session.save((err) => {
       if (err) {
         console.error("Session Save Error:", err);
-        return res.redirect(`/join-team?error=Server%20Error`);
+        return res.redirect(`/auth/join-team?error=Server%20Error`);
       }
       res.redirect("/dashboard");
     });
   }
   catch (err) {
     console.error(err);
-    return res.redirect('/join-team?error=Server%20Error');
+    return res.redirect('/auth/join-team?error=Server%20Error');
   }
 }
 

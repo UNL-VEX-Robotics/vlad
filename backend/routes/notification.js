@@ -1,7 +1,12 @@
 import express from 'express';
-import { markAsRead, markAllAsRead, deleteNotification, deleteAllNotifications } from '../controllers/notification.controller.js';
+import { markAsRead, markAllAsRead, deleteNotification, deleteAllNotifications, renderNotifications } from '../controllers/notification.controller.js';
+import { isAuthenticated } from '../middleware/auth.middleware.js';
+
 
 const router = express.Router();
+
+// GET /notifications/hub page
+router.get('/hub', isAuthenticated, renderNotifications);
 
 // POST /notifications/mark-as-read
 router.post('/mark-as-read', markAsRead);

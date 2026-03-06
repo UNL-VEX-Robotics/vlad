@@ -180,7 +180,7 @@ export const withLayout = (title, content, req) => {
                     <input type="hidden" name="user_id" value="${req.session.user_id}">
                     <button type="submit">My Profile</button>
                 </form>
-                <button onclick="window.location.href='/notifications'">Notification Hub</button>
+                <button onclick="window.location.href='/notifications/hub'">Notification Hub</button>
                 <form action="/auth/logout" method="POST" style="border-top: 1px solid var(--border-color); margin-top: 5px; padding-top: 5px;">
                     <button type="submit" style="color: var(--accent-red);">Log Out</button>
                 </form>

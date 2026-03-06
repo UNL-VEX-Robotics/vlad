@@ -1,28 +1,61 @@
-import nodemailer from 'nodemailer';
 import pool from '../db.js';
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
 import nodeCron from 'node-cron';
-
-const SALT_ROUNDS = 12;
-const EMAIL_REGEX = /\w*@(?:\w*.)+/;
-const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-
-const verbose = false;
+import { TRANSPORTER, SALT_ROUNDS, EMAIL_REGEX, PASSWORD_REGEX } from '../utils/constants.js';
+import { withLayout } from '../views/layout.js';
+import { forgotPasswordPage, emailSentPage, setNewPasswordPage, resetConfirmationPage } from '../views/reset.view.js';
 
 /**
- * Nodemailer Transporter
- * Configured using Gmail SMTP settings from environment variables.
+ * Renders the forgot password page.
+ * @param {Object} req - Express request object. Can contain an optional query parameter 'error' for displaying error messages.
+ * @param {Object} res - Express response object. Sends the rendered HTML page for password reset requests.
  */
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASSWORD,
-  },
-  debug: verbose,
-  logger: verbose
-})
+export const renderForgotPassword = (req, res) => {
+    const error = req.query.error;
+    const content = forgotPasswordPage(error);
+    
+    // Using withLayout to keep the CSS/Header consistent
+    res.send(withLayout("Reset Password", content, req));
+};
+
+/**
+ * Renders the email sent page.
+ * @param {Object} req - Express request object. Can contain an optional query parameter 'error' for displaying error messages.
+ * @param {Object} res - Express response object. Sends the rendered HTML page for password reset requests.
+ */
+export const renderEmailSent = (req, res) => {
+    const content = emailSentPage();
+    res.send(withLayout("Email Sent", content, req));
+};
+
+/**
+ * Renders the reset password form page.
+ * @param {Object} req - Express request object. Can contain an optional query parameter 'error' for displaying error messages.
+ * @param {Object} res - Express response object. Sends the rendered HTML page for password reset requests.
+ */
+export const renderResetPassword = (req, res) => {
+    const token = req.query.token;
+    const error = req.query.error;
+
+    // If there is no token, you might want to redirect them back to the forgot-password page
+    if (!token && !error) {
+        return res.redirect('/reset/forgot-password');
+    }
+
+    const content = setNewPasswordPage(token, error);
+    res.send(withLayout("Set New Password", content, req));
+};
+
+/**
+ * Renders the reset confirmation form page.
+ * @param {Object} req - Express request object. Can contain an optional query parameter 'error' for displaying error messages.
+ * @param {Object} res - Express response object. Sends the rendered HTML page for password reset requests.
+ */
+export const renderResetConfirmation = (req, res) => {
+    const content = resetConfirmationPage();
+    res.send(withLayout("Password Reset Successful", content, req));
+};
 
 /**
  * Empty the reset tokens from all user records after they expire. 
@@ -56,7 +89,7 @@ export async function sendResetPasswordEmail(req, res) {
     // Check if email is valid
     const clean_email = to.trim().toLowerCase();
     if (!EMAIL_REGEX.test((clean_email))) {
-      return res.redirect(`/email?error=Invalid%20Email`);
+      return res.redirect(`/reset/forgot-password?error=Invalid%20Email`);
     }
 
     const results = await pool.query(
@@ -65,7 +98,7 @@ export async function sendResetPasswordEmail(req, res) {
     );
 
     if (!(results.rows[0])){
-      return res.redirect(`/email?error=Invalid%20Email`);
+      return res.redirect(`/reset/forgot-password?error=Invalid%20Email`);
     }
 
     await pool.query(
@@ -75,7 +108,7 @@ export async function sendResetPasswordEmail(req, res) {
 
     const host = req.get('host');
     const protocol = req.protocol;
-    const resetLink = `${protocol}://${host}/reset-password?token=${resetToken}`;
+    const resetLink = `${protocol}://${host}/reset/reset-password?token=${resetToken}`;
     const mailOptions = {
       from: `"VLAD App" <${process.env.EMAIL_USER}>`, 
       to: clean_email,
@@ -111,12 +144,12 @@ export async function sendResetPasswordEmail(req, res) {
     </div>`
     };
 
-    await transporter.sendMail(mailOptions);
-    res.redirect('/email-sent');
+    await TRANSPORTER.sendMail(mailOptions);
+    res.redirect('/reset/email-sent');
   }
   catch (err) {
     console.error(err);
-    return res.redirect('/email?error=Server%20Error');
+    return res.redirect('/reset/forgot-password?error=Server%20Error');
   }
 }
 
@@ -134,15 +167,15 @@ export async function resetPassword(req, res) {
   const { token, newPassword, confirmPassword } = req.body;
 
   if (newPassword !== confirmPassword) {
-    return res.redirect(`/reset-password?token=${token}&error=Passwords%20do%20not%20match`);
+    return res.redirect(`/reset/reset-password?token=${token}&error=Passwords%20do%20not%20match`);
   }
 
   if (newPassword.length < 8) {
-    return res.redirect(`/reset-password?token=${token}&error=Password%20must%20be%20at%20least%208%20characters`)
+    return res.redirect(`/reset/reset-password?token=${token}&error=Password%20must%20be%20at%20least%208%20characters`)
   }
 
-  if (!passwordRegex.test(newPassword)){
-    return res.redirect(`/reset-password?token=${token}&error=Password%20does%20not%20requirements`);
+  if (!PASSWORD_REGEX.test(newPassword)){
+    return res.redirect(`/reset/reset-password?token=${token}&error=Password%20does%20not%20requirements`);
   }
 
   try {
@@ -152,7 +185,7 @@ export async function resetPassword(req, res) {
     );
 
     if (user.rows.length === 0) {
-      return res.redirect('/email?error=Reenter%20Email');
+      return res.redirect('/reset/forgot-password?error=Reenter%20Email');
     }
 
     const hashed = await bcrypt.hash(newPassword, SALT_ROUNDS);
@@ -161,7 +194,7 @@ export async function resetPassword(req, res) {
       [hashed, user.rows[0].id]
     );
 
-    res.redirect('/reset-confirmation');
+    res.redirect('/reset/reset-confirmation');
   }
   catch (err) {
     console.error(err);
