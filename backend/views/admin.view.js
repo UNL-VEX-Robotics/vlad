@@ -1,4 +1,7 @@
-// need to fix the html because it looks wrong when a request shows up
+/**
+ * Renders the Team Request form content.
+ * @param {string} error - Optional error message from URL query.
+ */
 export const teamRequestsPage = (requests) => {
     const requestListHtml = requests.map(r => `
         <div class="request-panel">
@@ -25,11 +28,10 @@ export const teamRequestsPage = (requests) => {
 
     return `
         <style>
-            /* Main container to prevent layout jumping */
             .requests-container {
                 max-width: 500px;
                 margin: 0 auto;
-                min-height: 400px; /* Reserves space so footer/bottom don't jump up */
+                min-height: 400px;
             }
 
             .request-panel {
@@ -65,6 +67,11 @@ export const teamRequestsPage = (requests) => {
                 border-radius: 6px;
                 border: none;
                 font-weight: 600;
+                transition: opacity 0.2s;
+            }
+            
+            .action-btn:hover {
+                opacity: 0.9;
             }
 
             .approve { background: #2f855a !important; color: white !important; }
@@ -73,6 +80,7 @@ export const teamRequestsPage = (requests) => {
             .back-nav {
                 max-width: 500px;
                 margin: 2rem auto 0.5rem;
+                text-align: left;
             }
 
             @keyframes fadeIn {
@@ -82,7 +90,7 @@ export const teamRequestsPage = (requests) => {
         </style>
 
         <div class="back-nav">
-            <a href="/dashboard" style="text-decoration:none; color:var(--accent-red); font-weight:700; font-size:0.9rem;">
+            <a href="/dashboard" style="text-decoration:none; color:var(--accent-red); font-weight:700; font-size:0.9rem; display: inline-block;">
                 ← BACK TO DASHBOARD
             </a>
         </div>

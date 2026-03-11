@@ -1,3 +1,7 @@
+/**
+ * Renders the Forgot Password Page form content.
+ * @param {string} error - Optional error message from URL query.
+ */
 export const forgotPasswordPage = (error) => {
     const errorMessageHtml = error ? `<div class="alert-box">${error}</div>` : '';
 
@@ -13,13 +17,16 @@ export const forgotPasswordPage = (error) => {
                 <input name="to" type="email" placeholder="email@example.com" required />
                 <input type="submit" value="Send Reset Link" />
             </form>
-            <form action="/auth/login" method="GET">
-                <button type="submit" class="secondary-btn">Back to Login</button>
-            </form>
+
+            <a href="/auth/login" class="secondary-btn">Back to Login</a>
         </div>
     `;
 };
 
+/**
+ * Renders the Sent Email Page form content.
+ * @param {string} error - Optional error message from URL query.
+ */
 export const emailSentPage = () => {
     return `
         <style>
@@ -54,9 +61,7 @@ export const emailSentPage = () => {
                 </ul>
             </div>
 
-            <form action="/auth/login" method="GET">
-                <button type="submit">Back to Login</button>
-            </form>
+            <a href="/auth/login" class="secondary-btn">Back to Login</a>
             
             <p style="font-size: 0.8rem; margin-top: 15px; color: #a0aec0;">
                 Didn't get the email? <a href="/reset/forgot-password" style="color: #3182ce; text-decoration: none;">Try again</a>
@@ -65,6 +70,10 @@ export const emailSentPage = () => {
     `;
 };
 
+/**
+ * Renders the Reset Password Page form content.
+ * @param {string} error - Optional error message from URL query.
+ */
 export const setNewPasswordPage = (token, error) => {
     const errorMessageHtml = error ? `<div class="alert-box">${error}</div>` : '';
 
@@ -95,6 +104,8 @@ export const setNewPasswordPage = (token, error) => {
 
                 <input type="submit" value="Update Password" />
             </form>
+
+            <a href="/auth/login" class="secondary-btn" style="margin-top: 15px;">Cancel and Return to Login</a>
         </div>
 
         <script>
@@ -112,6 +123,10 @@ export const setNewPasswordPage = (token, error) => {
     `;
 };
 
+/**
+ * Renders the Reset Confirmation Page form content.
+ * @param {string} error - Optional error message from URL query.
+ */
 export const resetConfirmationPage = () => {
     return `
         <div class="card" style="text-align: center;">

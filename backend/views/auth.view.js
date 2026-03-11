@@ -38,9 +38,10 @@ export const signupPage = (error) => {
                 
                 <input type="submit" value="Create Account" />
             </form>
-            <form method="GET" action="/auth/login">
-                <button type="submit" class="secondary-btn">Already have an account? Login</button>
-            </form>
+
+            <a href="/auth/login" class="secondary-btn" style="text-decoration: none; display: block; text-align: center; margin-top: 10px;">
+                Already have an account? Login
+            </a>
         </div>
 
         <script>
@@ -72,7 +73,7 @@ export const loginPage = (error) => {
                 ${errorMessageHtml}
                 
                 <label>Email</label>
-                <input name="email" placeholder="Email" required />
+                <input type="email" name="email" placeholder="Email" required />
                 
                 <label>Password</label>
                 <div class="password-wrapper">
@@ -83,13 +84,9 @@ export const loginPage = (error) => {
                 <input type="submit" value="Login" />
             </form>
             
-            <div style="margin-top: 10px;">
-                <form action="/reset/forgot-password" method="GET">
-                    <button type="submit" class="secondary-btn">Forgot Password?</button>
-                </form>
-                <form action="/auth/signup" method="GET">
-                    <button type="submit" class="secondary-btn">New here? Signup</button>
-                </form>
+            <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 8px;">
+                <a href="/reset/forgot-password" class="secondary-btn">Forgot Password?</a>
+                <a href="/auth/signup" class="secondary-btn">New here? Signup</a>
             </div>
         </div>
 
@@ -123,13 +120,14 @@ export const createTeamPage = (error) => {
                 <p style="color: #718096; font-size: 0.9rem; margin-bottom: 20px;">
                     As the creator, you will be the team lead and manage join requests.
                 </p>
+                
                 <label>Team Name</label>
                 <input name="team_name" placeholder="e.g. Alpha Squad" required />
+                
                 <input type="submit" value="Establish Team" />
             </form>
-            <form action="/dashboard" method="GET">
-                <button type="submit" class="secondary-btn">Cancel</button>
-            </form>
+
+            <a href="/dashboard" class="secondary-btn">Cancel</a>
         </div>
     `;
 };
@@ -150,12 +148,10 @@ export const joinTeamPage = (error) => {
                 <input name="team_name" placeholder="Enter exact team name" required />
                 <input type="submit" value="Send Join Request" />
             </form>
+            <a href="/dashboard" class="secondary-btn">Back</a>
             <p style="font-size: 0.8rem; color: #a0aec0; text-align: center; margin-top: 15px;">
                 Note: You will need to be accepted by the team lead.
             </p>
-            <form action="/dashboard" method="GET">
-                <button type="submit" class="secondary-btn">Back</button>
-            </form>
         </div>
     `;
 };

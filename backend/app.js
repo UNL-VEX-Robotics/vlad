@@ -5,7 +5,7 @@ import emailRoutes from './routes/reset.js';
 import adminRoutes from './routes/admin.js';
 import subteamRoutes from './routes/subteam.js';
 import userRoutes from './routes/user.js';
-import notificationRoutes from './routes/notification.js';
+import notificationRoutes from './routes/notifications.js';
 import { ROLES } from './utils/constants.js';
 import session from 'express-session';
 import pgSession from 'connect-pg-simple';

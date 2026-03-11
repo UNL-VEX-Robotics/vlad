@@ -1,26 +1,34 @@
 import { ROLES } from '../utils/constants.js';
 
 /**
- * SUB-RENDERER: Individual Notification Items
+ * Renders the Notifications on the Dashboard form content.
+ * @param {string} n - notifications
  */
 const renderNotifItem = (n) => `
     <div class="notification-item" style="background: var(--bg-card); border: 1px solid var(--border-color); border-left: 4px solid var(--accent-red); padding: 12px; border-radius: 6px; margin-bottom: 10px; position: relative;">
         <h4 style="margin: 0 0 3px 0; font-size: 0.9rem; color: var(--text-heading);">${n.title}</h4>
         <p style="margin: 0; font-size: 0.85rem; color: var(--text-main); line-height:1.4;">${n.message}</p>
+        
         <form action="/notifications/mark-as-read" method="POST" style="margin-top: 8px;">
             <input type="hidden" name="notification_id" value="${n.id}">
-            <button type="submit" style="background:none; border:none; color:var(--text-muted); font-size:0.75rem; cursor:pointer; text-decoration:underline; padding:0;">Mark as read</button>
+            <button type="submit" class="text-link-btn" style="background:none; border:none; color:var(--text-muted); font-size:0.75rem; cursor:pointer; text-decoration:underline; padding:0;">
+                Mark as read
+            </button>
         </form>
     </div>
 `;
 
 /**
- * SUB-RENDERER: Individual Member Rows
+ * Renders the Members on the Dashboard form content.
+ * @param {string} m - members
+ * @param {string} userRole - The members role
+ * @param {string} currentUserId - The current users ID
  */
 const renderMemberRow = (m, userRole, currentUserId) => {
     const roleLabels = { 1: 'Member', 2: 'Lead', 3: 'Admin', 4: 'Owner' };
     let actionButtons = '';
 
+    // Promote/Demote logic: Keep as POST because it changes database permissions
     if (userRole >= 3 && m.id !== currentUserId) {
         if (m.role < 3) {
             actionButtons += `
@@ -46,16 +54,22 @@ const renderMemberRow = (m, userRole, currentUserId) => {
             <div class="menu-container">
                 <button class="dot-btn" onclick="toggleMenu(event, 'menu-${m.id}')">⋮</button>
                 <div id="menu-${m.id}" class="dropdown-menu">
-                    <form action="/profile" method="GET" style="margin:0;"><input type="hidden" name="user_id" value="${m.id}"><button type="submit">View Profile</button></form>
+                    <a href="/profile?user_id=${m.id}" class="dropdown-item-link">View Profile</a>
+                    
                     ${actionButtons}
-                    <form action="/report" method="POST" style="margin:0;"><input type="hidden" name="user_id" value="${m.id}"><button type="submit">Report</button></form>
+                    
+                    <form action="/report" method="POST" style="margin:0;">
+                        <input type="hidden" name="user_id" value="${m.id}">
+                        <button type="submit">Report</button>
+                    </form>
                 </div>
             </div>
         </li>`;
 };
 
 /**
- * MAIN RENDERER: The Dashboard Page
+ * Renders the Members on the Dashboard form content.
+ * @param {string} data - user, notifications, members, subteams, and error
  */
 export const dashboardPage = (data) => {
     const { user, notifications, members, subteams, error } = data;
@@ -210,6 +224,13 @@ export const dashboardPage = (data) => {
     `;
 };
 
+/**
+ * Renders the Members on the Dashboard form content.
+ * @param {string} user - users page
+ * @param {string} sessionUser - The users whos session it is
+ * @param {string} error - the error string
+ * @param {string} ROLES - the constant ROLES
+ */
 export const profilePage = (user, sessionUser, error, ROLES) => {
     const roleMap = {
         [ROLES.PENDING]: { label: 'Pending Approval', class: 'badge-pending' },

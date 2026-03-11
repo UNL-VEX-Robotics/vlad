@@ -1,3 +1,7 @@
+/**
+ * Renders the Notification Page form content.
+ * @param {string} error - Optional error message from URL query.
+ */
 export const notificationsPage = (notifications) => {
     const notifHtml = notifications.length > 0 ? notifications.map(n => `
         <div class="notif-card ${n.is_read ? 'read' : 'unread'}">
@@ -75,7 +79,7 @@ export const notificationsPage = (notifications) => {
                     <form action="/notifications/mark-all-as-read" method="POST" style="margin:0;">
                         <button type="submit" class="action-btn-reverted">✓ Mark All Read</button>
                     </form>
-                    <form action="/notifications/delete-all" method="POST" style="margin:0;" onsubmit="return confirm('Delete all notifications?')">
+                    <form action="/notifications/delete-all" method="POST" style="margin:0;"onsubmit="return confirm('Delete all notifications?')">
                         <button type="submit" class="action-btn-reverted">🗑 Delete All</button>
                     </form>
                 </div>
@@ -90,9 +94,7 @@ export const notificationsPage = (notifications) => {
             </div>
 
             <div style="margin-top: 40px; text-align: center; border-top: 1px solid var(--border-color); padding-top: 30px;">
-                <a href="/dashboard" style="text-decoration: none;">
-                    <button type="button" class="secondary-btn">Back to Dashboard</button>
-                </a>
+                <a href="/dashboard" class="secondary-btn">Back to Dashboard</a>
             </div>
         </div>
     `;

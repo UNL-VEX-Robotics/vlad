@@ -2,7 +2,7 @@ import pool from '../db.js';
 import nodeCron from 'node-cron';
 import { ROLES } from '../utils/constants.js';
 import { withLayout } from '../views/layout.js';
-import { notificationsPage } from '../views/notification.view.js';
+import { notificationsPage } from '../views/notifications.view.js';
 
 // Need to figure out a way to clear notifications from the dashboard when they are marked as read because function brings them to notifications 
 // page when it should bring them to the dashboard if they are on the dashboard and the notifications page when on the notifications page.
@@ -89,7 +89,7 @@ export async function markAllAsRead(req, res) {
  * @param {Object} req - Express request object. Expects req.body.notification_id.
  * @param {Object} res - Express response object. Redirects to dashboard after deletion.
  */
-export async function deleteNotification(req, res) {
+export async function deleteNotifications(req, res) {
     const { notification_id } = req.body;
     try {
         await pool.query(
@@ -115,11 +115,11 @@ export async function deleteAllNotifications(req, res) {
             "DELETE FROM notifications WHERE user_id = $1",
             [req.session.user_id]
         );
-        return res.redirect('/notifications');
+        return res.redirect('/notifications/hub');
     }
     catch (err){
         console.error("Error deleting all notifications: ", err);
-        return res.redirect('/notifications?error=Server%20Error');
+        return res.redirect('/notifications/hub?error=Server%20Error');
     }
 }
 

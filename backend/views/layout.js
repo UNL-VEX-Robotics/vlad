@@ -64,8 +64,30 @@ export const commonStyles = `
     button, input[type="submit"] { width: 100%; padding: 12px; border: none; border-radius: 8px; background: var(--accent-red); color: white; font-weight: 700; cursor: pointer; transition: 0.2s; text-transform: uppercase; letter-spacing: 0.03em; }
     button:hover, input[type="submit"]:hover { background: var(--accent-hover); transform: translateY(-1px); }
     
-    .secondary-btn { background: var(--btn-secondary-bg) !important; color: var(--btn-secondary-text) !important; margin-top: 4px; }
-    .secondary-btn:hover { background: var(--border-color) !important; }
+    .secondary-btn {
+    font-family: 'Inter', sans-serif;
+    background: var(--btn-secondary-bg) !important;
+    color: var(--btn-secondary-text) !important;
+    display: inline-block;
+    padding: 12px 20px; 
+    border-radius: 6px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    line-height: 1.2;
+    margin-top: 10px;
+    text-decoration: none;
+    text-align: center;
+    cursor: pointer;
+    box-sizing: border-box;
+    width: 100%;
+    border: 1px solid var(--border-color); 
+    transition: opacity 0.2s, background 0.2s;
+    }
+    .secondary-btn:hover { 
+    background: var(--border-color) !important; 
+    opacity: 0.9;
+    filter: brightness(1.1);
+    }
     
     /* Sidebar */
     .sidebar { width: 280px; background: var(--bg-sidebar); border-left: 1px solid var(--border-color); padding: 20px; height: 100vh; box-sizing: border-box; }
@@ -73,6 +95,25 @@ export const commonStyles = `
     .dropdown-menu { display: none; position: absolute; right: 0; top: 30px; background: var(--bg-card); border: 1px solid var(--border-color); box-shadow: 0 10px 15px rgba(0,0,0,0.5); z-index: 100; width: 160px; border-radius: 8px; overflow: hidden;}
     .dropdown-menu button { border-radius: 0; border: none; border-bottom: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-main); text-align: left; padding: 12px; font-size: 0.85rem; text-transform: none; letter-spacing: normal; }
     .dropdown-menu button:hover { background: var(--accent-red); color: white; }
+    .dropdown-menu button, 
+    .dropdown-item-link {
+    display: block;
+    width: 100%;
+    padding: 10px 15px;
+    text-align: left;
+    background: none;
+    border: none;
+    color: var(--text-main);
+    text-decoration: none;
+    font-size: 0.85rem;
+    cursor: pointer;
+    box-sizing: border-box;
+    }
+
+    .dropdown-menu button:hover, 
+    .dropdown-item-link:hover {
+    background-color: var(--bg-hover);
+    }
 
     /* Profile UI */
     .info-group { margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; }
@@ -176,11 +217,10 @@ export const withLayout = (title, content, req) => {
                 Account: ${req.session.user_name} ▾
             </button>
             <div id="top-profile-menu" class="dropdown-menu" style="right: 0; width: 180px; top: 35px;">
-                <form action="/profile" method="GET">
-                    <input type="hidden" name="user_id" value="${req.session.user_id}">
-                    <button type="submit">My Profile</button>
-                </form>
-                <button onclick="window.location.href='/notifications/hub'">Notification Hub</button>
+                <a href="/profile?user_id=${req.session.user_id}" class="menu-link">My Profile</a>
+                
+                <a href="/notifications" class="menu-link">Notification Hub</a>
+                
                 <form action="/auth/logout" method="POST" style="border-top: 1px solid var(--border-color); margin-top: 5px; padding-top: 5px;">
                     <button type="submit" style="color: var(--accent-red);">Log Out</button>
                 </form>
@@ -195,7 +235,7 @@ export const withLayout = (title, content, req) => {
             ${commonStyles}
             <style>
                 .top-nav {
-                    height: 40px; /* Set to 40px as requested */
+                    height: 40px;
                     display: flex;
                     justify-content: flex-end;
                     align-items: center;
@@ -209,7 +249,6 @@ export const withLayout = (title, content, req) => {
                 main {
                     min-height: calc(100vh - 40px);
                     width: 100%;
-                    
                     display: flex; 
                     flex-direction: column; 
                     justify-content: center; 
@@ -219,7 +258,6 @@ export const withLayout = (title, content, req) => {
                     background: none;
                     border: 1px solid var(--border-color);
                     color: var(--text-heading);
-                    /* Reduced vertical padding from 8px to 4px to fit 40px nav */
                     padding: 4px 12px; 
                     border-radius: 6px;
                     cursor: pointer;
@@ -235,23 +273,21 @@ export const withLayout = (title, content, req) => {
                     z-index: 1000;
                     box-shadow: 0 4px 12px rgba(0,0,0,0.2);
                 }
-                .dropdown-menu form {
-                    margin: 0 !important;
-                    padding: 0 !important;
-                    display: block;
-                }
-                .dropdown-menu button {
+                /* Added styling for anchor links to match button appearance */
+                .menu-link, .dropdown-menu button {
                     width: 100%;
                     text-align: left;
                     background: none;
                     border: none;
-                    padding: 8px 15px; /* Slightly tighter internal padding */
+                    padding: 8px 15px; 
                     color: var(--text-main);
                     cursor: pointer;
                     display: block;
                     font-size: 0.85rem;
+                    text-decoration: none;
+                    box-sizing: border-box;
                 }
-                .dropdown-menu button:hover {
+                .menu-link:hover, .dropdown-menu button:hover {
                     background: var(--bg-body);
                 }
             </style>

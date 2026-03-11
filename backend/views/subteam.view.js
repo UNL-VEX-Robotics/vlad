@@ -1,3 +1,7 @@
+/**
+ * Renders the Subteam Creation Page form content.
+ * @param {string} error - Optional error message from URL query.
+ */
 export const createSubteamPage = (primaryTeam, error) => {
     const errorMessageHtml = error ? `
         <div class="alert-box" style="margin-bottom: 20px;">
@@ -22,9 +26,8 @@ export const createSubteamPage = (primaryTeam, error) => {
 
                 <div style="margin-top: 25px;">
                     <button type="submit">Deploy Subteam</button>
-                    <a href="/dashboard" style="text-decoration: none;">
-                        <button type="button" class="secondary-btn" style="margin-top: 10px; width: 100%;">Return to Dashboard</button>
-                    </a>
+                    
+                    <a href="/dashboard" class="secondary-btn" style="margin-top: 10px;">Return to Dashboard</a>
                 </div>
             </form>
         </div>
