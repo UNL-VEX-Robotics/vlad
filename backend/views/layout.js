@@ -106,14 +106,15 @@ export const commonStyles = `
     color: var(--text-main);
     text-decoration: none;
     font-size: 0.85rem;
+    font-weight: 700; 
+    font-family: inherit;
     cursor: pointer;
-    box-sizing: border-box;
-    }
+    box-sizing: border-box;}
 
     .dropdown-menu button:hover, 
     .dropdown-item-link:hover {
     background-color: var(--bg-hover);
-    }
+    color: var(--text-main); }
 
     /* Profile UI */
     .info-group { margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; }

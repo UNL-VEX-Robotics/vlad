@@ -1,6 +1,6 @@
 /**
  * Renders the Team Request form content.
- * @param {string} error - Optional error message from URL query.
+ * @param {string} requests - The requests to join the specified team
  */
 export const teamRequestsPage = (requests) => {
     const requestListHtml = requests.map(r => `

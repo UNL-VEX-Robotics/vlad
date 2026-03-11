@@ -1,5 +1,6 @@
 /**
  * Renders the Subteam Creation Page form content.
+ * @param {string} primaryTeam - The team that the subteam will be created under.
  * @param {string} error - Optional error message from URL query.
  */
 export const createSubteamPage = (primaryTeam, error) => {

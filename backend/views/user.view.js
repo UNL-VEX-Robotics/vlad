@@ -2,7 +2,7 @@ import { ROLES } from '../utils/constants.js';
 
 /**
  * Renders the Notifications on the Dashboard form content.
- * @param {string} n - notifications
+ * @param {string} n - each notifications
  */
 const renderNotifItem = (n) => `
     <div class="notification-item" style="background: var(--bg-card); border: 1px solid var(--border-color); border-left: 4px solid var(--accent-red); padding: 12px; border-radius: 6px; margin-bottom: 10px; position: relative;">
@@ -20,7 +20,7 @@ const renderNotifItem = (n) => `
 
 /**
  * Renders the Members on the Dashboard form content.
- * @param {string} m - members
+ * @param {string} m - each member
  * @param {string} userRole - The members role
  * @param {string} currentUserId - The current users ID
  */

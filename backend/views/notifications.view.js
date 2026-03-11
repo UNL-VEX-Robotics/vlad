@@ -1,6 +1,6 @@
 /**
  * Renders the Notification Page form content.
- * @param {string} error - Optional error message from URL query.
+ * @param {string} notifications - All of the notifications for the specified user
  */
 export const notificationsPage = (notifications) => {
     const notifHtml = notifications.length > 0 ? notifications.map(n => `

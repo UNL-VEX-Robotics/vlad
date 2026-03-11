@@ -25,7 +25,6 @@ export const forgotPasswordPage = (error) => {
 
 /**
  * Renders the Sent Email Page form content.
- * @param {string} error - Optional error message from URL query.
  */
 export const emailSentPage = () => {
     return `
@@ -72,6 +71,7 @@ export const emailSentPage = () => {
 
 /**
  * Renders the Reset Password Page form content.
+ * @param {string} token - The token passed to the email for reseting passwords
  * @param {string} error - Optional error message from URL query.
  */
 export const setNewPasswordPage = (token, error) => {
@@ -125,7 +125,6 @@ export const setNewPasswordPage = (token, error) => {
 
 /**
  * Renders the Reset Confirmation Page form content.
- * @param {string} error - Optional error message from URL query.
  */
 export const resetConfirmationPage = () => {
     return `
