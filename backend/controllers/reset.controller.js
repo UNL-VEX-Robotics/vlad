@@ -89,7 +89,7 @@ export async function sendResetPasswordEmail(req, res) {
     // Check if email is valid
     const clean_email = to.trim().toLowerCase();
     if (!EMAIL_REGEX.test((clean_email))) {
-      return res.redirect(`/reset/forgot-password?error=Invalid%20Email`);
+      return res.redirect(`/reset/email-sent`);
     }
 
     const results = await pool.query(
@@ -98,12 +98,14 @@ export async function sendResetPasswordEmail(req, res) {
     );
 
     if (!(results.rows[0])){
-      return res.redirect(`/reset/forgot-password?error=Invalid%20Email`);
+      return res.redirect(`/reset/email-sent`);
     }
+
+    const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
 
     await pool.query(
       `UPDATE user_account SET reset_token = $1, reset_expiry = $2 WHERE email = $3`,
-      [resetToken, expires, clean_email]
+      [hashedToken, expires, clean_email]
     );
 
     const host = req.get('host');
@@ -178,10 +180,12 @@ export async function resetPassword(req, res) {
     return res.redirect(`/reset/reset-password?token=${token}&error=Password%20does%20not%20requirements`);
   }
 
+  const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
   try {
     const user = await pool.query(
       "SELECT * FROM user_account WHERE reset_token = $1 AND reset_expiry > NOW()",
-      [token]
+      [hashedToken]
     );
 
     if (user.rows.length === 0) {
