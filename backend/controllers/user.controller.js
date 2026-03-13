@@ -11,22 +11,50 @@ import { ROLES } from '../utils/constants.js';
 export const renderDashboard = async (req, res) => {
     try {
         const userId = req.session.user_id;
+
+        // 0. Sync Session with DB 
+        // Fetch the latest team and role directly from the account table
+        const userSync = await pool.query(
+            "SELECT team_id, role FROM user_account WHERE id = $1", 
+            [userId]
+        );
+
+        if (userSync.rows.length > 0) {
+            const { team_id, role } = userSync.rows[0];
+            req.session.team_id = team_id;
+            req.session.role = role;
+        }
+
+        if (req.session.team_id === null){
+            req.session.team = null
+        }
+
+        // Now use the freshly updated session values
         const teamId = req.session.team_id;
 
         // 1. Fetch Notifications
-        const notifs = await pool.query("SELECT * FROM notifications WHERE user_id = $1 AND is_read = FALSE", [userId]);
+        const notifs = await pool.query(
+            "SELECT * FROM notifications WHERE user_id = $1 AND is_read = FALSE", 
+            [userId]
+        );
         
         // 2. Fetch Members (only if they have a team)
         let members = [];
         if (teamId) {
-            const memberRes = await pool.query("SELECT id, user_name, role FROM user_account WHERE team_id = $1 ORDER BY role DESC", [teamId]);
+            const memberRes = await pool.query(
+                "SELECT id, user_name, role FROM user_account WHERE team_id = $1 ORDER BY role DESC", 
+                [teamId]
+            );
             members = memberRes.rows;
         }
 
         // 3. Fetch Subteams
         let subteams = [];
         if (teamId) {
-            const subRes = await pool.query("SELECT * FROM subteam WHERE team_id = $1", [teamId]);
+            const subRes = await pool.query(
+                "SELECT * FROM subteam WHERE team_id = $1", 
+                [teamId]
+            );
             subteams = subRes.rows;
         }
 
@@ -37,7 +65,6 @@ export const renderDashboard = async (req, res) => {
             subteams,
             error: req.query.error
         };
-
         res.send(withLayout("Dashboard", dashboardPage(pageData), req));
     } catch (err) {
         console.error(err);

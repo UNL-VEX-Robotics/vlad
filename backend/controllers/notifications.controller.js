@@ -57,7 +57,7 @@ export async function markAsRead(req, res) {
             "UPDATE notifications SET is_read = TRUE WHERE id = $1",
             [notification_id]
         );
-        return res.redirect('/notifications');
+        return res.redirect('/notifications/hub');
     }
     catch (err){
         console.error("Error marking notification as read: ", err);
@@ -76,7 +76,7 @@ export async function markAllAsRead(req, res) {
             "UPDATE notifications SET is_read = TRUE WHERE user_id = $1",
             [req.session.user_id]
         );
-        return res.redirect('/notifications');
+        return res.redirect('/notifications/hub');
     }
     catch (err){
         console.error("Error marking all notifications as read: ", err);

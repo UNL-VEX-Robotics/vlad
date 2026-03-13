@@ -14,7 +14,7 @@ export const forgotPasswordPage = (error) => {
                     Enter your email address and we'll send you a recovery link.
                 </p>
                 <label>Email Address</label>
-                <input name="to" type="email" placeholder="email@example.com" required />
+                <input name="to" type="email" placeholder="email@example.com" inputmode="email" required />
                 <input type="submit" value="Send Reset Link" />
             </form>
 

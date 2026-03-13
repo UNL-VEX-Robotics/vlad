@@ -144,7 +144,7 @@ export const dashboardPage = (data) => {
 
             <h2 style="color: var(--text-heading);">Dashboard</h2>
             
-            ${(user.team && !isApproved) ? `<div style="background: var(--badge-pending-bg); border: 1px solid var(--border-color); padding: 15px; border-radius: 8px; color: var(--badge-pending-text); margin-bottom: 20px;">⏳ Waiting for team lead approval...</div>` : ''}
+            ${(user.team !== null && !isApproved) ? `<div style="background: var(--badge-pending-bg); border: 1px solid var(--border-color); padding: 15px; border-radius: 8px; color: var(--badge-pending-text); margin-bottom: 20px;">⏳ Waiting for team lead approval...</div>` : ''}
 
             ${(!user.team) ? `
                 <div class="card" style="margin:0; max-width:400px;">

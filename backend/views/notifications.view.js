@@ -14,7 +14,7 @@ export const notificationsPage = (notifications) => {
                 </div>
                 <form action="/notifications/delete" method="POST" style="margin:0;">
                     <input type="hidden" name="notification_id" value="${n.id}">
-                    <button type="submit" class="delete-notif-btn" title="Delete">×</button>
+                    <button type="submit" class="delete-notif-btn" title="Delete" aria-label="Delete notification">×</button>
                 </form>
             </div>
             

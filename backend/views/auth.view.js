@@ -15,7 +15,7 @@ export const signupPage = (error) => {
                 <input name="user_name" placeholder="Username" required />
                 
                 <label>Email</label>
-                <input name="email" type="email" placeholder="Email" required />
+                <input name="email" type="email" placeholder="Email" inputmode="email" required />
                 
                 <label>Password</label>
                 <ul style="padding-left: 18px; padding-bottom: 7px; margin: 0; font-size: 0.7rem;">
@@ -73,7 +73,7 @@ export const loginPage = (error) => {
                 ${errorMessageHtml}
                 
                 <label>Email</label>
-                <input type="email" name="email" placeholder="Email" required />
+                <input type="email" name="email" placeholder="Email" inputmode="email" required />
                 
                 <label>Password</label>
                 <div class="password-wrapper">
