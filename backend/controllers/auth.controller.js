@@ -321,5 +321,8 @@ nodeCron.schedule('0 3 * * *', async () => {
   catch (err) {
     console.error("Error cleaning up expired sessions: ", err);
   }
+}, {
+    scheduled: true,
+    timezone: "America/Chicago"
 });
 

@@ -43,6 +43,9 @@ nodeCron.schedule('0 2 * * *', async () => {
     catch (err) {
         console.error("Error cleaning up old notifications: ", err);
     }
+}, {
+    scheduled: true,
+    timezone: "America/Chicago"
 });
 
 /**

@@ -69,6 +69,9 @@ nodeCron.schedule('0 2 * * *', async () => {
   catch (err) {
     console.error("Error clearing expired reset tokens: ", err);
   }
+}, {
+    scheduled: true,
+    timezone: "America/Chicago"
 });
 
 /**
