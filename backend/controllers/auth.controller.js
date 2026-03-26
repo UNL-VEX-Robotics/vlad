@@ -315,7 +315,7 @@ export async function teamRequest(req, res) {
 nodeCron.schedule('0 3 * * *', async () => {
   try {
     await pool.query(
-      'DELETE FROM sessions WHERE expire < NOW()'
+      'DELETE FROM session WHERE expire < NOW()'
     );
   }
   catch (err) {
