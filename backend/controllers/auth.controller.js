@@ -1,9 +1,9 @@
-import bcrypt from 'bcrypt';
-import pool from '../db.js';
-import nodeCron from 'node-cron';
-import { withLayout } from '../views/layout.js';
-import { signupPage, loginPage, createTeamPage, joinTeamPage } from '../views/auth.view.js';
-import { ROLES, EMAIL_REGEX, SALT_ROUNDS, PASSWORD_REGEX } from '../utils/constants.js';
+import bcrypt from "bcrypt";
+import pool from "../db.js";
+import nodeCron from "node-cron";
+import { withLayout } from "../views/layout.js";
+import { signupPage, loginPage, createTeamPage, joinTeamPage } from "../views/auth.view.js";
+import { ROLES, EMAIL_REGEX, SALT_ROUNDS, PASSWORD_REGEX } from "../utils/constants.js";
 
 /**
  * Renders the Signup Page (GET)
@@ -51,65 +51,64 @@ export const renderJoinTeam = (req, res) => {
  * @param {Object} res - Express response object.
  */
 export async function signup(req, res) {
-  const { user_name, email, password, confirmPassword } = req.body;
-  const clean_email = email.trim().toLowerCase();
+    const { user_name, email, password, confirmPassword } = req.body;
+    const clean_email = email.trim().toLowerCase();
 
-  if (password.length < 8){
-    return res.redirect(`/auth/signup?error=Password%20must%20be%20at%20least%208%20characters`);
-  }
-
-  if (password !== confirmPassword) {
-    return res.redirect(`/auth/signup?error=Passwords%20do%20not%20match`);
-  }
-
-  if (!PASSWORD_REGEX.test(password)){
-    return res.redirect('/auth/signup?error=Password%20does%20not%20requirements');
-  }
-
-  if (!user_name || !clean_email || !password) {
-    return res.redirect(`/auth/signup?error=Missing%20field`);
-  }
-
-  if (!EMAIL_REGEX.test((clean_email))) {
-    return res.redirect(`/auth/signup?error=Invalid%20email`);
-  }
-
-  try {
-    const existingUser = await pool.query(
-      'SELECT id FROM user_account WHERE email = $1',
-      [clean_email]
-    );
-    if (existingUser.rows.length > 0) {
-      return res.redirect('/auth/signup?error=User%20Already%20Exists');
+    if (password.length < 8) {
+        return res.redirect(
+            "/auth/signup?error=Password%20must%20be%20at%20least%208%20characters"
+        );
     }
 
-    const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+    if (password !== confirmPassword) {
+        return res.redirect("/auth/signup?error=Passwords%20do%20not%20match");
+    }
 
-    const result = await pool.query(
-      `
+    if (!PASSWORD_REGEX.test(password)) {
+        return res.redirect("/auth/signup?error=Password%20does%20not%20requirements");
+    }
+
+    if (!user_name || !clean_email || !password) {
+        return res.redirect("/auth/signup?error=Missing%20field");
+    }
+
+    if (!EMAIL_REGEX.test(clean_email)) {
+        return res.redirect("/auth/signup?error=Invalid%20email");
+    }
+
+    try {
+        const existingUser = await pool.query("SELECT id FROM user_account WHERE email = $1", [
+            clean_email,
+        ]);
+        if (existingUser.rows.length > 0) {
+            return res.redirect("/auth/signup?error=User%20Already%20Exists");
+        }
+
+        const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+
+        const result = await pool.query(
+            `
       INSERT INTO user_account (user_name, email, password_hash, team_id, role)
       VALUES ($1, $2, $3, NULL, $4)
       RETURNING id, user_name, email, role
       `,
-      [user_name, clean_email, passwordHash, ROLES.PENDING]
-    );
-    req.session.user_id = result.rows[0].id;
-    req.session.user_name = result.rows[0].user_name;
-    req.session.email = result.rows[0].email;
-    req.session.role = result.rows[0].role;
-    req.session.team = null;
-    req.session.team_id = null;
-    req.session.save((err) => {
-      if (err) {
-        console.error("Session Save Error:", err);
-        return res.redirect(`/auth/signup?error=Server%20Error`);
-      }
-      res.redirect("/dashboard");
-    });
-  } catch (err) {
-    console.error(err);
-    return res.redirect('/auth/signup?error=Server%20Error');
-  }
+            [user_name, clean_email, passwordHash, ROLES.PENDING]
+        );
+        req.session.user_id = result.rows[0].id;
+        req.session.user_name = result.rows[0].user_name;
+        req.session.email = result.rows[0].email;
+        req.session.role = result.rows[0].role;
+        req.session.team = null;
+        req.session.team_id = null;
+        req.session.save((err) => {
+            if (err) {
+                return res.redirect("/auth/signup?error=Server%20Error");
+            }
+            res.redirect("/dashboard");
+        });
+    } catch {
+        return res.redirect("/auth/signup?error=Server%20Error");
+    }
 }
 
 /**
@@ -119,13 +118,13 @@ export async function signup(req, res) {
  * @param {Object} res - Express response object.
  * @returns {Promise<boolean>} True if match, false otherwise.
  */
-async function checkPassword(plainPassword, hashedPassword, res) {
-  try {
-    const isMatch = await bcrypt.compare(plainPassword, hashedPassword);
-    return isMatch;
-  } catch (err) {
-    res.status(400).json({ error: 'Invalid credentials' })
-  }
+async function checkPassword(plainPassword, hashedPassword) {
+    try {
+        const isMatch = await bcrypt.compare(plainPassword, hashedPassword);
+        return isMatch;
+    } catch {
+        return false;
+    }
 }
 
 /**
@@ -137,55 +136,51 @@ async function checkPassword(plainPassword, hashedPassword, res) {
  * @param {Object} res - Express response object.
  */
 export async function login(req, res) {
-  const { email, password } = req.body;
-  const clean_email = email.trim().toLowerCase();
+    const { email, password } = req.body;
+    const clean_email = email.trim().toLowerCase();
 
-  if (!clean_email || !password) {
-    return res.redirect(`/auth/login?error=Missing%20field`);
-  }
-
-  try {
-    const userResult = await pool.query(
-      'SELECT id, user_name, password_hash, team_id, role FROM user_account WHERE email = $1',
-      [clean_email]
-    );
-
-    const user = userResult.rows[0];
-
-    if (!user) {
-      return res.redirect(`/auth/login?error=Invalid%20Credentials`);
-    }
-    
-    req.session.team = null;
-    req.session.role = user.role;
-    req.session.team_id = user.team_id;
-
-    if (user.team_id != null) {
-      const team = await pool.query(
-        'SELECT name, lead_id FROM team WHERE id = $1',
-        [user.team_id]
-      );
-      req.session.team = team.rows[0].name;
+    if (!clean_email || !password) {
+        return res.redirect("/auth/login?error=Missing%20field");
     }
 
-    if (await checkPassword(password, user.password_hash, res)) {
-      req.session.user_id = user.id;
-      req.session.user_name = user.user_name;
-      req.session.save((err) => {
-        if (err) {
-          console.error("Session Save Error:", err);
-          return res.redirect(`/auth/login?error=Server%20Error`);
+    try {
+        const userResult = await pool.query(
+            "SELECT id, user_name, password_hash, team_id, role FROM user_account WHERE email = $1",
+            [clean_email]
+        );
+
+        const user = userResult.rows[0];
+
+        if (!user) {
+            return res.redirect("/auth/login?error=Invalid%20Credentials");
         }
-        res.redirect('/dashboard');
-      });
+
+        req.session.team = null;
+        req.session.role = user.role;
+        req.session.team_id = user.team_id;
+
+        if (user.team_id !== null) {
+            const team = await pool.query("SELECT name, lead_id FROM team WHERE id = $1", [
+                user.team_id,
+            ]);
+            req.session.team = team.rows[0].name;
+        }
+
+        if (await checkPassword(password, user.password_hash, res)) {
+            req.session.user_id = user.id;
+            req.session.user_name = user.user_name;
+            req.session.save((err) => {
+                if (err) {
+                    return res.redirect("/auth/login?error=Server%20Error");
+                }
+                res.redirect("/dashboard");
+            });
+        } else {
+            return res.redirect("/auth/login?error=Invalid%20Credentials");
+        }
+    } catch {
+        return res.redirect("/auth/login?error=Server%20Error");
     }
-    else {
-      return res.redirect(`/auth/login?error=Invalid%20Credentials`);
-    }
-  }
-  catch (err) {
-    return res.redirect(`/auth/login?error=Server%20Error`);
-  }
 }
 
 /**
@@ -194,14 +189,14 @@ export async function login(req, res) {
  * @param {Object} res - Express response object.
  */
 export async function logout(req, res) {
-  req.session.destroy((err) => {
-    if (err) {
-      console.error("Logout Error:", err);
-      return res.redirect('/dashboard?error=Server%20Error');
-    }
-    res.clearCookie('connect.sid');
-    res.redirect('/auth/login?message=logged-out');
-  });
+    await req.session.destroy((err) => {
+        if (err) {
+            res.status(500).json({ error: "Failed to log out", details: err.message });
+            return res.redirect("/dashboard?error=Server%20Error");
+        }
+        res.clearCookie("connect.sid");
+        res.redirect("/auth/login?message=logged-out");
+    });
 }
 
 /**
@@ -212,56 +207,51 @@ export async function logout(req, res) {
  * @param {Object} res - Express response object.
  */
 export async function createTeam(req, res) {
-  const client = await pool.connect();
-  const { team_name } = req.body;
-  const user_id = req.session.user_id;
-  
-  if (!team_name) {
-    return res.redirect(`/auth/create-team?error=Missing%20field`);
-  }
+    const client = await pool.connect();
+    const { team_name } = req.body;
+    const user_id = req.session.user_id;
 
-  try {
-    const teamResult = await pool.query(
-      'SELECT id FROM team WHERE name = $1',
-      [team_name]
-    );
-    if (teamResult.rows.length > 0) {
-      return res.redirect('/auth/create-team?error=Team%20Already%20Exists');
+    if (!team_name) {
+        return res.redirect("/auth/create-team?error=Missing%20field");
     }
 
-    await client.query('BEGIN');
+    try {
+        const teamResult = await pool.query("SELECT id FROM team WHERE name = $1", [team_name]);
+        if (teamResult.rows.length > 0) {
+            return res.redirect("/auth/create-team?error=Team%20Already%20Exists");
+        }
 
-    const result = await client.query(
-      "INSERT INTO team (name, lead_id) VALUES ($1, $2) RETURNING id, name, lead_id",
-      [team_name, user_id]
-    );
+        await client.query("BEGIN");
 
-    await client.query(
-      "UPDATE user_account SET team_id = $1, role = $2 WHERE id = $3",
-      [result.rows[0].id, ROLES.OWNER, user_id]
-    );
+        const result = await client.query(
+            "INSERT INTO team (name, lead_id) VALUES ($1, $2) RETURNING id, name, lead_id",
+            [team_name, user_id]
+        );
 
-    await client.query('COMMIT');
-    
-    req.session.team = team_name;
-    req.session.team_id = result.rows[0].id;
-    req.session.role = ROLES.OWNER;
-    req.session.save((err) => {
-      if (err) {
-        console.error("Session Save Error:", err);
-        return res.redirect(`/auth/create-team?error=Server%20Error`);
-      }
-      res.redirect("/dashboard");
-    });
-  }
-  catch (err) {
-    await client.query('ROLLBACK');
-    console.error(err);
-    return res.redirect('/auth/create-team?error=Server%20Error');
-  }
-  finally {
-    client.release();
-  }
+        await client.query("UPDATE user_account SET team_id = $1, role = $2 WHERE id = $3", [
+            result.rows[0].id,
+            ROLES.OWNER,
+            user_id,
+        ]);
+
+        await client.query("COMMIT");
+
+        req.session.team = team_name;
+        req.session.team_id = result.rows[0].id;
+        req.session.role = ROLES.OWNER;
+        req.session.save((err) => {
+            if (err) {
+                res.status(500).json({ error: "Failed to save session", details: err.message });
+                return res.redirect("/auth/create-team?error=Server%20Error");
+            }
+            res.redirect("/dashboard");
+        });
+    } catch {
+        await client.query("ROLLBACK");
+        return res.redirect("/auth/create-team?error=Server%20Error");
+    } finally {
+        client.release();
+    }
 }
 
 /**
@@ -271,56 +261,48 @@ export async function createTeam(req, res) {
  * @param {Object} res - Express response object.
  */
 export async function teamRequest(req, res) {
-  const { team_name } = req.body;
-  const user_id = req.session.user_id;
+    const { team_name } = req.body;
+    const user_id = req.session.user_id;
 
-  if (!team_name) {
-    return res.redirect(`/auth/join-team?error=Missing%20field`);
-  }
-
-  try {
-    const teamResult = await pool.query(
-      "SELECT id FROM team WHERE name = $1",
-      [team_name]
-    );
-    if (teamResult.rows.length === 0) {
-      return res.redirect('/auth/join-team?error=Team%20Not%20Found');
+    if (!team_name) {
+        return res.redirect("/auth/join-team?error=Missing%20field");
     }
-    const team_id = teamResult.rows[0].id;
-    await pool.query(
-      "UPDATE user_account SET team_id = $1 WHERE id = $2",
-      [team_id, user_id]
-    );
-    req.session.team = team_name;
-    req.session.team_id = team_id;
-    req.session.save((err) => {
-      if (err) {
-        console.error("Session Save Error:", err);
-        return res.redirect(`/auth/join-team?error=Server%20Error`);
-      }
-      res.redirect("/dashboard");
-    });
-  }
-  catch (err) {
-    console.error(err);
-    return res.redirect('/auth/join-team?error=Server%20Error');
-  }
+
+    try {
+        const teamResult = await pool.query("SELECT id FROM team WHERE name = $1", [team_name]);
+        if (teamResult.rows.length === 0) {
+            return res.redirect("/auth/join-team?error=Team%20Not%20Found");
+        }
+        const team_id = teamResult.rows[0].id;
+        await pool.query("UPDATE user_account SET team_id = $1 WHERE id = $2", [team_id, user_id]);
+        req.session.team = team_name;
+        req.session.team_id = team_id;
+        req.session.save((err) => {
+            if (err) {
+                res.status(500).json({ error: "Failed to save session", details: err.message });
+                return res.redirect("/auth/join-team?error=Server%20Error");
+            }
+            res.redirect("/dashboard");
+        });
+    } catch {
+        return res.redirect("/auth/join-team?error=Server%20Error");
+    }
 }
 
 /**
  * Deletes all expired sessions from the database. Scheduled to run dailty at 3:00 AM Central Time using node-cron.
  */
-nodeCron.schedule('0 3 * * *', async () => {
-  try {
-    await pool.query(
-      'DELETE FROM session WHERE expire < NOW()'
-    );
-  }
-  catch (err) {
-    console.error("Error cleaning up expired sessions: ", err);
-  }
-}, {
-    scheduled: true,
-    timezone: "America/Chicago"
-});
-
+nodeCron.schedule(
+    "0 3 * * *",
+    async () => {
+        try {
+            await pool.query("DELETE FROM session WHERE expire < NOW()");
+        } catch (err) {
+            console.error("Error cleaning up sessions:", err);
+        }
+    },
+    {
+        scheduled: true,
+        timezone: "America/Chicago",
+    }
+);

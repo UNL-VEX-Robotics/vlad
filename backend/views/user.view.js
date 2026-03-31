@@ -23,8 +23,8 @@ const renderNotifItem = (n) => `
  * @param {string} currentUserId - The current users ID
  */
 const renderMemberRow = (m, userRole, currentUserId) => {
-    const roleLabels = { 1: 'Member', 2: 'Lead', 3: 'Admin', 4: 'Owner' };
-    let actionButtons = '';
+    const roleLabels = { 1: "Member", 2: "Lead", 3: "Admin", 4: "Owner" };
+    let actionButtons = "";
 
     // Promote/Demote logic: Keep as POST because it changes database permissions
     if (userRole >= 3 && m.id !== currentUserId) {
@@ -122,9 +122,11 @@ export const dashboardPage = (data) => {
 
     <div class="dashboard-wrapper">
         <div class="main-content">
-            ${error ? `<div class="alert-box">${error}</div>` : ''}
+            ${error ? `<div class="alert-box">${error}</div>` : ""}
             
-            ${notifications.length > 0 ? `
+            ${
+                notifications.length > 0
+                    ? `
                 <div class="notifications-container" style="margin-bottom: 40px; max-width: 600px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                         <label style="font-size:0.7rem; font-weight:bold; color:var(--text-muted); text-transform:uppercase; letter-spacing: 0.05rem;">
@@ -135,28 +137,37 @@ export const dashboardPage = (data) => {
                         </form>
                     </div>
                     <div class="notifications-scroll-area" style="max-height: 250px; overflow-y: auto; padding-right: 8px;">
-                        ${notifications.map(renderNotifItem).join('')}
+                        ${notifications.map(renderNotifItem).join("")}
                     </div>
                 </div>
-            ` : ''}
+            `
+                    : ""
+            }
 
             <h2 style="color: var(--text-heading);">Dashboard</h2>
             
-            ${(user.team !== null && !isApproved) ? `<div style="background: var(--badge-pending-bg); border: 1px solid var(--border-color); padding: 15px; border-radius: 8px; color: var(--badge-pending-text); margin-bottom: 20px;">⏳ Waiting for team lead approval...</div>` : ''}
+            ${user.team !== null && !isApproved ? '<div style="background: var(--badge-pending-bg); border: 1px solid var(--border-color); padding: 15px; border-radius: 8px; color: var(--badge-pending-text); margin-bottom: 20px;">⏳ Waiting for team lead approval...</div>' : ""}
 
-            ${(!user.team) ? `
+            ${
+                !user.team
+                    ? `
                 <div class="card" style="margin:0; max-width:400px;">
                     <h3>Get Started</h3>
                     <form action="/auth/create-team" method="GET"><button type="submit">Create Team</button></form>
                     <form action="/auth/join-team" method="GET"><button type="submit" class="secondary-btn" style="margin-top:10px;">Join Team</button></form>
                 </div>
-            ` : `
+            `
+                    : `
                 <h3 style="color: var(--text-muted); font-size: 0.9rem; text-transform: uppercase;">Subteams</h3>
                 <div class="subteam-grid">
-                    ${subteams.map(s => `
+                    ${subteams
+                        .map(
+                            (s) => `
                         <div class="subteam-card">
                             <div style="font-weight: 700; color: var(--text-heading);">${s.name}</div>
-                            ${user.role > 2 ? `
+                            ${
+                                user.role > 2
+                                    ? `
                                 <div class="menu-container">
                                     <button class="dot-btn" onclick="toggleMenu(event, 'sub-${s.id}')">⋮</button>
                                     <div id="sub-${s.id}" class="dropdown-menu">
@@ -164,36 +175,49 @@ export const dashboardPage = (data) => {
                                         <button type="button" onclick="confirmDelete('${s.id}', '${s.name}')" style="color:var(--accent-red);">Delete</button>
                                     </div>
                                 </div>
-                            ` : ''}
+                            `
+                                    : ""
+                            }
                         </div>
-                    `).join('')}
-                    ${user.role > 2 ? `
+                    `
+                        )
+                        .join("")}
+                    ${
+                        user.role > 2
+                            ? `
                         <a href="/subteam/create-subteam" style="text-decoration:none;">
                             <div class="subteam-card" style="border: 2px dashed var(--border-color); justify-content:center; color: var(--accent-red); cursor:pointer;">
                                 + Create Subteam
                             </div>
                         </a>
-                    ` : ''}
+                    `
+                            : ""
+                    }
                 </div>
-            `}
+            `
+            }
         </div>
 
         <div class="sidebar">
             <h3 style="margin-top:0; font-size: 1.1rem; color: var(--text-heading); margin-bottom: 5px;">
-                ${user.team || 'No Team'}
+                ${user.team || "No Team"}
             </h3>
             
-            ${user.role > 2 ? `
+            ${
+                user.role > 2
+                    ? `
                 <form action="/admin/team-requests" method="GET">
                     <button type="submit" class="manage-btn">Manage Requests</button>
                 </form>
-            ` : ''}
+            `
+                    : ""
+            }
 
             <hr style="margin: 20px 0; border: 0; border-top: 1px solid var(--border-color);">
             
             <label style="font-size: 0.75rem; font-weight: bold; color: var(--text-muted);">MEMBERS</label>
             <ul style="list-style:none; padding:0; margin-top: 10px;">
-                ${members.length > 0 ? members.map(m => renderMemberRow(m, user.role, user.user_id)).join('') : '<li style="color: var(--text-muted); font-size:0.9rem;">No members visible</li>'}
+                ${members.length > 0 ? members.map((m) => renderMemberRow(m, user.role, user.user_id)).join("") : '<li style="color: var(--text-muted); font-size:0.9rem;">No members visible</li>'}
             </ul>
         </div>
     </div> <script>
@@ -231,20 +255,20 @@ export const dashboardPage = (data) => {
  */
 export const profilePage = (user, sessionUser, error, ROLES) => {
     const roleMap = {
-        [ROLES.PENDING]: { label: 'Pending Approval', class: 'badge-pending' },
-        [ROLES.MEMBER]: { label: 'Member', class: 'badge-member' },
-        [ROLES.LEAD]: { label: 'Lead', class: 'badge-lead' },
-        [ROLES.ADMIN]: { label: 'Admin', class: 'badge-admin' },
-        [ROLES.OWNER]: { label: 'Owner', class: 'badge-owner' }
+        [ROLES.PENDING]: { label: "Pending Approval", class: "badge-pending" },
+        [ROLES.MEMBER]: { label: "Member", class: "badge-member" },
+        [ROLES.LEAD]: { label: "Lead", class: "badge-lead" },
+        [ROLES.ADMIN]: { label: "Admin", class: "badge-admin" },
+        [ROLES.OWNER]: { label: "Owner", class: "badge-owner" },
     };
 
-    const currentRole = roleMap[user.role] || { label: 'Unknown', class: 'badge-pending' };
-    const errorMessageHtml = error ? `<div class="alert-box">${error}</div>` : '';
+    const currentRole = roleMap[user.role] || { label: "Unknown", class: "badge-pending" };
+    const errorMessageHtml = error ? `<div class="alert-box">${error}</div>` : "";
 
     // Logic for Management Dropdown
-    let manageDropdownHtml = '';
+    let manageDropdownHtml = "";
     if (sessionUser.role === ROLES.OWNER && user.id !== sessionUser.id) {
-        let actions = '';
+        let actions = "";
 
         if (user.role < ROLES.ADMIN) {
             const nextRoleData = roleMap[user.role + 1];
@@ -347,7 +371,7 @@ export const profilePage = (user, sessionUser, error, ROLES) => {
 
             <div class="info-group">
                 <div class="info-label">Current Team</div>
-                <div class="info-value">${user.team_name || 'No Team Assigned'}</div>
+                <div class="info-value">${user.team_name || "No Team Assigned"}</div>
             </div>
 
             <div style="margin-top: 2rem; display: flex; gap: 10px; position: relative;">

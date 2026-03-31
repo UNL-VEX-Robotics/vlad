@@ -3,7 +3,10 @@
  * @param {string} requests - The requests to join the specified team
  */
 export const teamRequestsPage = (requests) => {
-    const requestListHtml = requests.map(r => `
+    const requestListHtml =
+        requests
+            .map(
+                (r) => `
         <div class="request-panel">
             <div class="request-details">
                 <div class="info-label">User</div>
@@ -21,7 +24,10 @@ export const teamRequestsPage = (requests) => {
                 </form>
             </div>
         </div>
-    `).join('') || `
+    `
+            )
+            .join("") ||
+        `
         <div class="request-panel empty-state">
             <p style="margin:0; color:var(--text-muted);">No pending requests at this time.</p>
         </div>`;

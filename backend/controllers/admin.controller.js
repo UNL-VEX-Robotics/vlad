@@ -1,7 +1,7 @@
-import pool from '../db.js';
-import { ROLES } from '../utils/constants.js';
-import { withLayout } from '../views/layout.js';
-import { teamRequestsPage } from '../views/admin.view.js';
+import pool from "../db.js";
+import { ROLES } from "../utils/constants.js";
+import { withLayout } from "../views/layout.js";
+import { teamRequestsPage } from "../views/admin.view.js";
 
 /**
  * Renders the user Team Requests page.
@@ -21,8 +21,7 @@ export const renderTeamRequests = async (req, res) => {
 
         const content = teamRequestsPage(requests.rows);
         res.send(withLayout("Team Requests", content, req));
-    } catch (err) {
-        console.error("Error fetching team requests:", err);
+    } catch {
         res.status(500).send("Error loading requests");
     }
 };
@@ -36,15 +35,14 @@ export const renderTeamRequests = async (req, res) => {
 export async function acceptUserRequest(req, res) {
     const { user_id } = req.body;
     try {
-        const result = await pool.query(
+        await pool.query(
             "UPDATE user_account SET role = $1 WHERE id = $2 RETURNING id, user_name, email, role",
             [ROLES.MEMBER, user_id]
         );
 
-        res.redirect('/admin/team-requests');
-    } catch (error) {
-        console.error("Error approving user:", error);
-        return res.redirect('/team-requests?error=Server%20Error');
+        res.redirect("/admin/team-requests");
+    } catch {
+        return res.redirect("/team-requests?error=Server%20Error");
     }
 }
 
@@ -57,19 +55,24 @@ export async function acceptUserRequest(req, res) {
 export async function rejectUserRequest(req, res) {
     const { user_id } = req.body;
     try {
-        const result = await pool.query(
+        await pool.query(
             "UPDATE user_account SET team_id = NULL WHERE id = $1 RETURNING id, user_name, email, team_id",
             [user_id]
         );
         await pool.query(
-            `INSERT INTO notifications (user_id, title, message, type, created_at) VALUES ($1, $2, $3, $4, NOW())`,
-            [user_id, 'Join Request Rejected: ' + req.session.team, 'Your request to join ' + req.session.team + ' was rejected by the team lead. You can try joining a different team or contact your team lead for more information.', 'rejection']
+            "INSERT INTO notifications (user_id, title, message, type, created_at) VALUES ($1, $2, $3, $4, NOW())",
+            [
+                user_id,
+                "Join Request Rejected: " + req.session.team,
+                "Your request to join " +
+                    req.session.team +
+                    " was rejected by the team lead. You can try joining a different team or contact your team lead for more information.",
+                "rejection",
+            ]
         );
-        res.redirect('/admin/team-requests');
-    }
-    catch (error) {
-        console.error("Error rejecting user:", error);
-        return res.redirect('/admin/team-requests?error=Server%20Error');
+        res.redirect("/admin/team-requests");
+    } catch {
+        return res.redirect("/admin/team-requests?error=Server%20Error");
     }
 }
 
@@ -82,28 +85,24 @@ export async function removeUserFromTeam(req, res) {
     const { user_id, reason } = req.body;
     try {
         if (req.session.role < ROLES.OWNER) {
-            return res.redirect('/dashboard?error=Insufficient%20Permissions');
+            return res.redirect("/dashboard?error=Insufficient%20Permissions");
         }
+        await pool.query("UPDATE user_account SET team_id = NULL, role = $1 WHERE id = $2", [
+            ROLES.PENDING,
+            user_id,
+        ]);
         await pool.query(
-            `UPDATE user_account SET team_id = NULL, role = $1 WHERE id = $2`,
-            [ROLES.PENDING, user_id]
+            "INSERT INTO notifications (user_id, title, message, type, created_at) VALUES ($1, $2, $3, $4, NOW())",
+            [user_id, "Removed from Team: " + req.session.team, reason, "removal"]
         );
-        await pool.query(
-            `INSERT INTO notifications (user_id, title, message, type, created_at) VALUES ($1, $2, $3, $4, NOW())`,
-            [user_id, 'Removed from Team: ' + req.session.team, reason, 'removal']
-        );
-        return res.redirect('/dashboard');
-
-    }
-    catch (err) {
-        console.error("Error removing user from team:", err);
-        return res.redirect('/dashboard?error=System%20Error');
+        return res.redirect("/dashboard");
+    } catch {
+        return res.redirect("/dashboard?error=System%20Error");
     }
 }
 
-
 /**
- * Promotes or demotes a user to a specified role. 
+ * Promotes or demotes a user to a specified role.
  * Handles role changes for MEMBER, LEAD, ADMIN, and OWNER.
  * Note: Promoting to OWNER will also update the team's lead_id and demote the current owner to ADMIN.
  * @param {Object} req - Express request object. Expects req.body.user_id and req.body.new_role.
@@ -112,9 +111,8 @@ export async function removeUserFromTeam(req, res) {
 export async function changeUserRole(req, res) {
     const { user_id, new_role } = req.body;
     try {
-
         if (req.session.role < ROLES.ADMIN) {
-            return res.redirect('/dashboard?error=Insufficient%20Permissions');
+            return res.redirect("/dashboard?error=Insufficient%20Permissions");
         }
 
         const result = await pool.query(
@@ -128,10 +126,8 @@ export async function changeUserRole(req, res) {
                 [user_id, ROLES.ADMIN, req.session.user_id]
             );
         }
-        return res.redirect('/dashboard');
-    }
-    catch (err) {
-        console.error("Error promoting user:", err);
-        return res.redirect('/dashboard?error=Failed%20to%20promote%20user');
+        return res.redirect("/dashboard");
+    } catch {
+        return res.redirect("/dashboard?error=Failed%20to%20promote%20user");
     }
 }

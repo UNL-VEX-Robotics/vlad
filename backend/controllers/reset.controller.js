@@ -1,10 +1,15 @@
-import pool from '../db.js';
-import crypto from 'crypto';
-import bcrypt from 'bcrypt';
-import nodeCron from 'node-cron';
-import { TRANSPORTER, SALT_ROUNDS, EMAIL_REGEX, PASSWORD_REGEX } from '../utils/constants.js';
-import { withLayout } from '../views/layout.js';
-import { forgotPasswordPage, emailSentPage, setNewPasswordPage, resetConfirmationPage } from '../views/reset.view.js';
+import pool from "../db.js";
+import crypto from "crypto";
+import bcrypt from "bcrypt";
+import nodeCron from "node-cron";
+import { TRANSPORTER, SALT_ROUNDS, EMAIL_REGEX, PASSWORD_REGEX } from "../utils/constants.js";
+import { withLayout } from "../views/layout.js";
+import {
+    forgotPasswordPage,
+    emailSentPage,
+    setNewPasswordPage,
+    resetConfirmationPage,
+} from "../views/reset.view.js";
 
 /**
  * Renders the forgot password page.
@@ -14,7 +19,7 @@ import { forgotPasswordPage, emailSentPage, setNewPasswordPage, resetConfirmatio
 export const renderForgotPassword = (req, res) => {
     const error = req.query.error;
     const content = forgotPasswordPage(error);
-    
+
     // Using withLayout to keep the CSS/Header consistent
     res.send(withLayout("Reset Password", content, req));
 };
@@ -40,7 +45,7 @@ export const renderResetPassword = (req, res) => {
 
     // If there is no token, you might want to redirect them back to the forgot-password page
     if (!token && !error) {
-        return res.redirect('/reset/forgot-password');
+        return res.redirect("/reset/forgot-password");
     }
 
     const content = setNewPasswordPage(token, error);
@@ -58,21 +63,24 @@ export const renderResetConfirmation = (req, res) => {
 };
 
 /**
- * Empty the reset tokens from all user records after they expire. 
+ * Empty the reset tokens from all user records after they expire.
  */
-nodeCron.schedule('0 2 * * *', async () => {
-  try {
-    await pool.query(
-      "UPDATE user_account SET reset_token = NULL, reset_expiry = NULL WHERE reset_expiry < NOW()"
-    );
-  }
-  catch (err) {
-    console.error("Error clearing expired reset tokens: ", err);
-  }
-}, {
-    scheduled: true,
-    timezone: "America/Chicago"
-});
+nodeCron.schedule(
+    "0 2 * * *",
+    async () => {
+        try {
+            await pool.query(
+                "UPDATE user_account SET reset_token = NULL, reset_expiry = NULL WHERE reset_expiry < NOW()"
+            );
+        } catch (err) {
+            console.error("Error clearing expired reset tokens:", err);
+        }
+    },
+    {
+        scheduled: true,
+        timezone: "America/Chicago",
+    }
+);
 
 /**
  * Generates a password reset token and sends an email to the user.
@@ -84,41 +92,40 @@ nodeCron.schedule('0 2 * * *', async () => {
  * @param {Object} res - Express response object. Redirects to status pages.
  */
 export async function sendResetPasswordEmail(req, res) {
-  const resetToken = crypto.randomBytes(32).toString('hex');
-  const expires = new Date(Date.now() + 3600000); // 1 hour later
-  const { to } = req.body;
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const expires = new Date(Date.now() + 3600000); // 1 hour later
+    const { to } = req.body;
 
-  try {
-    // Check if email is valid
-    const clean_email = to.trim().toLowerCase();
-    if (!EMAIL_REGEX.test((clean_email))) {
-      return res.redirect(`/reset/email-sent`);
-    }
+    try {
+        // Check if email is valid
+        const clean_email = to.trim().toLowerCase();
+        if (!EMAIL_REGEX.test(clean_email)) {
+            return res.redirect("/reset/email-sent");
+        }
 
-    const results = await pool.query(
-      `SELECT id FROM user_account WHERE email = $1`,
-      [clean_email]
-    );
+        const results = await pool.query("SELECT id FROM user_account WHERE email = $1", [
+            clean_email,
+        ]);
 
-    if (!(results.rows[0])){
-      return res.redirect(`/reset/email-sent`);
-    }
+        if (!results.rows[0]) {
+            return res.redirect("/reset/email-sent");
+        }
 
-    const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+        const hashedToken = crypto.createHash("sha256").update(resetToken).digest("hex");
 
-    await pool.query(
-      `UPDATE user_account SET reset_token = $1, reset_expiry = $2 WHERE email = $3`,
-      [hashedToken, expires, clean_email]
-    );
+        await pool.query(
+            "UPDATE user_account SET reset_token = $1, reset_expiry = $2 WHERE email = $3",
+            [hashedToken, expires, clean_email]
+        );
 
-    const host = req.get('host');
-    const protocol = req.protocol;
-    const resetLink = `${protocol}://${host}/reset/reset-password?token=${resetToken}`;
-    const mailOptions = {
-      from: `"VLAD App" <${process.env.EMAIL_USER}>`, 
-      to: clean_email,
-      subject: 'Reset Your VLAD Password',
-      html: `
+        const host = req.get("host");
+        const protocol = req.protocol;
+        const resetLink = `${protocol}://${host}/reset/reset-password?token=${resetToken}`;
+        const mailOptions = {
+            from: `"VLAD App" <${process.env.EMAIL_USER}>`,
+            to: clean_email,
+            subject: "Reset Your VLAD Password",
+            html: `
     <div style="font-family: sans-serif; background-color: #f4f7f9; padding: 40px 10px; line-height: 1.6;">
       <div style="max-width: 500px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
         <div style="background-color: #3182ce; padding: 20px; text-align: center;">
@@ -146,16 +153,14 @@ export async function sendResetPasswordEmail(req, res) {
           </p>
         </div>
       </div>
-    </div>`
-    };
+    </div>`,
+        };
 
-    await TRANSPORTER.sendMail(mailOptions);
-    res.redirect('/reset/email-sent');
-  }
-  catch (err) {
-    console.error(err);
-    return res.redirect('/reset/forgot-password?error=Server%20Error');
-  }
+        await TRANSPORTER.sendMail(mailOptions);
+        res.redirect("/reset/email-sent");
+    } catch {
+        return res.redirect("/reset/forgot-password?error=Server%20Error");
+    }
 }
 
 /**
@@ -169,42 +174,46 @@ export async function sendResetPasswordEmail(req, res) {
  * @param {Object} res - Express response object. Redirects to confirmation or error pages.
  */
 export async function resetPassword(req, res) {
-  const { token, newPassword, confirmPassword } = req.body;
+    const { token, newPassword, confirmPassword } = req.body;
 
-  if (newPassword !== confirmPassword) {
-    return res.redirect(`/reset/reset-password?token=${token}&error=Passwords%20do%20not%20match`);
-  }
-
-  if (newPassword.length < 8) {
-    return res.redirect(`/reset/reset-password?token=${token}&error=Password%20must%20be%20at%20least%208%20characters`)
-  }
-
-  if (!PASSWORD_REGEX.test(newPassword)){
-    return res.redirect(`/reset/reset-password?token=${token}&error=Password%20does%20not%20requirements`);
-  }
-
-  const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
-
-  try {
-    const user = await pool.query(
-      "SELECT * FROM user_account WHERE reset_token = $1 AND reset_expiry > NOW()",
-      [hashedToken]
-    );
-
-    if (user.rows.length === 0) {
-      return res.redirect('/reset/forgot-password?error=Reenter%20Email');
+    if (newPassword !== confirmPassword) {
+        return res.redirect(
+            `/reset/reset-password?token=${token}&error=Passwords%20do%20not%20match`
+        );
     }
 
-    const hashed = await bcrypt.hash(newPassword, SALT_ROUNDS);
-    await pool.query(
-      "UPDATE user_account SET password_hash = $1, reset_token = NULL, reset_expiry = NULL WHERE id = $2",
-      [hashed, user.rows[0].id]
-    );
+    if (newPassword.length < 8) {
+        return res.redirect(
+            `/reset/reset-password?token=${token}&error=Password%20must%20be%20at%20least%208%20characters`
+        );
+    }
 
-    res.redirect('/reset/reset-confirmation');
-  }
-  catch (err) {
-    console.error(err);
-    return res.redirect('/reset-password?error=Server%20Error');
-  }
+    if (!PASSWORD_REGEX.test(newPassword)) {
+        return res.redirect(
+            `/reset/reset-password?token=${token}&error=Password%20does%20not%20requirements`
+        );
+    }
+
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
+    try {
+        const user = await pool.query(
+            "SELECT * FROM user_account WHERE reset_token = $1 AND reset_expiry > NOW()",
+            [hashedToken]
+        );
+
+        if (user.rows.length === 0) {
+            return res.redirect("/reset/forgot-password?error=Reenter%20Email");
+        }
+
+        const hashed = await bcrypt.hash(newPassword, SALT_ROUNDS);
+        await pool.query(
+            "UPDATE user_account SET password_hash = $1, reset_token = NULL, reset_expiry = NULL WHERE id = $2",
+            [hashed, user.rows[0].id]
+        );
+
+        res.redirect("/reset/reset-confirmation");
+    } catch {
+        return res.redirect("/reset-password?error=Server%20Error");
+    }
 }

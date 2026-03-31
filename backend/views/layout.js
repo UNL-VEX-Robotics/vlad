@@ -1,4 +1,4 @@
-// This holds the styles for the HTML including a light and dark mode that go by 
+// This holds the styles for the HTML including a light and dark mode that go by
 // what the users system settings are this is here to making changing application looks
 export const commonStyles = `
 <style>
@@ -212,7 +212,9 @@ export const commonStyles = `
  */
 export const withLayout = (title, content, req) => {
     // Check if user is logged in to show the account menu
-    const userMenu = req.session && req.session.user_name ? `
+    const userMenu =
+        req.session && req.session.user_name
+            ? `
         <div class="menu-container" style="position: relative;">
             <button class="profile-trigger" onclick="toggleMenu(event, 'top-profile-menu')">
                 Account: ${req.session.user_name} ▾
@@ -227,7 +229,8 @@ export const withLayout = (title, content, req) => {
                 </form>
             </div>
         </div>
-    ` : '';
+    `
+            : "";
 
     return `
     <html>

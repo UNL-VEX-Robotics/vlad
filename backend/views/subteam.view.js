@@ -4,10 +4,12 @@
  * @param {string} error - Optional error message from URL query.
  */
 export const createSubteamPage = (primaryTeam, error) => {
-    const errorMessageHtml = error ? `
+    const errorMessageHtml = error
+        ? `
         <div class="alert-box" style="margin-bottom: 20px;">
             ${error}
-        </div>` : '';
+        </div>`
+        : "";
 
     return `
         <div class="card" style="max-width: 500px; margin: 40px auto;">

@@ -1,7 +1,7 @@
-import pool from '../db.js';
-import { withLayout } from '../views/layout.js';
-import { dashboardPage, profilePage } from '../views/user.view.js';
-import { ROLES } from '../utils/constants.js';
+import pool from "../db.js";
+import { withLayout } from "../views/layout.js";
+import { dashboardPage, profilePage } from "../views/user.view.js";
+import { ROLES } from "../utils/constants.js";
 
 /**
  * Renders the user dashboard page.
@@ -12,12 +12,11 @@ export const renderDashboard = async (req, res) => {
     try {
         const userId = req.session.user_id;
 
-        // 0. Sync Session with DB 
+        // 0. Sync Session with DB
         // Fetch the latest team and role directly from the account table
-        const userSync = await pool.query(
-            "SELECT team_id, role FROM user_account WHERE id = $1", 
-            [userId]
-        );
+        const userSync = await pool.query("SELECT team_id, role FROM user_account WHERE id = $1", [
+            userId,
+        ]);
 
         if (userSync.rows.length > 0) {
             const { team_id, role } = userSync.rows[0];
@@ -25,8 +24,8 @@ export const renderDashboard = async (req, res) => {
             req.session.role = role;
         }
 
-        if (req.session.team_id === null){
-            req.session.team = null
+        if (req.session.team_id === null) {
+            req.session.team = null;
         }
 
         // Now use the freshly updated session values
@@ -34,15 +33,15 @@ export const renderDashboard = async (req, res) => {
 
         // 1. Fetch Notifications
         const notifs = await pool.query(
-            "SELECT * FROM notifications WHERE user_id = $1 AND is_read = FALSE", 
+            "SELECT * FROM notifications WHERE user_id = $1 AND is_read = FALSE",
             [userId]
         );
-        
+
         // 2. Fetch Members (only if they have a team)
         let members = [];
         if (teamId) {
             const memberRes = await pool.query(
-                "SELECT id, user_name, role FROM user_account WHERE team_id = $1 ORDER BY role DESC", 
+                "SELECT id, user_name, role FROM user_account WHERE team_id = $1 ORDER BY role DESC",
                 [teamId]
             );
             members = memberRes.rows;
@@ -51,10 +50,7 @@ export const renderDashboard = async (req, res) => {
         // 3. Fetch Subteams
         let subteams = [];
         if (teamId) {
-            const subRes = await pool.query(
-                "SELECT * FROM subteam WHERE team_id = $1", 
-                [teamId]
-            );
+            const subRes = await pool.query("SELECT * FROM subteam WHERE team_id = $1", [teamId]);
             subteams = subRes.rows;
         }
 
@@ -63,12 +59,11 @@ export const renderDashboard = async (req, res) => {
             notifications: notifs.rows,
             members,
             subteams,
-            error: req.query.error
+            error: req.query.error,
         };
         res.send(withLayout("Dashboard", dashboardPage(pageData), req));
     } catch (err) {
-        console.error(err);
-        res.status(500).send("Error loading dashboard");
+        res.status(500).json({ error: "Failed to load dashboard", details: err.message });
     }
 };
 
@@ -90,18 +85,19 @@ export const renderProfile = async (req, res) => {
             [targetUserId]
         );
 
-        if (userResult.rows.length === 0) return res.status(404).send("User not found");
-        
+        if (userResult.rows.length === 0) {
+            return res.status(404).send("User not found");
+        }
+
         const user = userResult.rows[0];
         const sessionUser = {
             id: req.session.user_id,
-            role: req.session.role
+            role: req.session.role,
         };
 
         const content = profilePage(user, sessionUser, error, ROLES);
         res.send(withLayout(`${user.user_name}'s Profile`, content, req));
     } catch (err) {
-        console.error(err);
-        res.status(500).send("Error loading profile");
+        res.status(500).json({ error: "Failed to load profile", details: err.message });
     }
 };

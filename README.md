@@ -6,7 +6,7 @@ VLAD, also known as the VEX Logging and Assignment Dashboard is a tool created b
 
 ## Layout
 
-VLAD is separated into four levels: 
+VLAD is separated into four levels:
 
 1. `Team` contains `Subteams`
 2. `Subteams` contain `Projects`

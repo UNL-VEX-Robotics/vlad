@@ -3,7 +3,7 @@
  * @param {string} error - Optional error message from URL query.
  */
 export const forgotPasswordPage = (error) => {
-    const errorMessageHtml = error ? `<div class="alert-box">${error}</div>` : '';
+    const errorMessageHtml = error ? `<div class="alert-box">${error}</div>` : "";
 
     return `
         <div class="card">
@@ -75,14 +75,14 @@ export const emailSentPage = () => {
  * @param {string} error - Optional error message from URL query.
  */
 export const setNewPasswordPage = (token, error) => {
-    const errorMessageHtml = error ? `<div class="alert-box">${error}</div>` : '';
+    const errorMessageHtml = error ? `<div class="alert-box">${error}</div>` : "";
 
     return `
         <div class="card">
             <form method="POST" action="/reset/reset-password">
                 <h2>Set New Password</h2>
                 ${errorMessageHtml}
-                <input type="hidden" name="token" value="${token || ''}" />
+                <input type="hidden" name="token" value="${token || ""}" />
                 
                 <label>New Password</label>
                 <ul style="padding-left: 18px; padding-bottom: 7px; margin: 0; font-size: 0.7rem; color: var(--text-muted);">

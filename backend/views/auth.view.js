@@ -3,7 +3,7 @@
  * @param {string} error - Optional error message from URL query.
  */
 export const signupPage = (error) => {
-    const errorMessageHtml = error ? `<div class="alert-box">${error}</div>` : '';
+    const errorMessageHtml = error ? `<div class="alert-box">${error}</div>` : "";
 
     return `
         <div class="card">
@@ -64,7 +64,7 @@ export const signupPage = (error) => {
  * @param {string} error - Optional error message from URL query.
  */
 export const loginPage = (error) => {
-    const errorMessageHtml = error ? `<div class="alert-box">${error}</div>` : '';
+    const errorMessageHtml = error ? `<div class="alert-box">${error}</div>` : "";
 
     return `
         <div class="card">
@@ -110,7 +110,7 @@ export const loginPage = (error) => {
  * @param {string} error - Optional error message from URL query.
  */
 export const createTeamPage = (error) => {
-    const errorMessageHtml = error ? `<div class="alert-box">${error}</div>` : '';
+    const errorMessageHtml = error ? `<div class="alert-box">${error}</div>` : "";
 
     return `
         <div class="card">
@@ -137,7 +137,7 @@ export const createTeamPage = (error) => {
  * @param {string} error - Optional error message from URL query.
  */
 export const joinTeamPage = (error) => {
-    const errorMessageHtml = error ? `<div class="alert-box">${error}</div>` : '';
+    const errorMessageHtml = error ? `<div class="alert-box">${error}</div>` : "";
 
     return `
         <div class="card">

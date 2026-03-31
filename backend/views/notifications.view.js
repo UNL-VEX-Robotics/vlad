@@ -3,8 +3,12 @@
  * @param {string} notifications - All of the notifications for the specified user
  */
 export const notificationsPage = (notifications) => {
-    const notifHtml = notifications.length > 0 ? notifications.map(n => `
-        <div class="notif-card ${n.is_read ? 'read' : 'unread'}">
+    const notifHtml =
+        notifications.length > 0
+            ? notifications
+                  .map(
+                      (n) => `
+        <div class="notif-card ${n.is_read ? "read" : "unread"}">
             <div class="notif-header">
                 <div>
                     <h4 class="notif-title">${n.title}</h4>
@@ -20,7 +24,9 @@ export const notificationsPage = (notifications) => {
             
             <p class="notif-message">${n.message}</p>
             
-            ${!n.is_read ? `
+            ${
+                !n.is_read
+                    ? `
                 <form action="/notifications/mark-as-read" method="POST" style="margin-top: 15px;">
                     <input type="hidden" name="notification_id" value="${n.id}">
                     <input type="hidden" name="redirect" value="/notifications">
@@ -28,9 +34,14 @@ export const notificationsPage = (notifications) => {
                         Mark as read
                     </button>
                 </form>
-            ` : ''}
+            `
+                    : ""
+            }
         </div>
-    `).join('') : '<p style="text-align:center; color:var(--text-muted); margin-top: 3rem;">No recent notifications.</p>';
+    `
+                  )
+                  .join("")
+            : '<p style="text-align:center; color:var(--text-muted); margin-top: 3rem;">No recent notifications.</p>';
 
     return `
         <style>

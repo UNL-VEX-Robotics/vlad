@@ -1,6 +1,6 @@
-import pool from '../db.js';
-import { withLayout } from '../views/layout.js';
-import { createSubteamPage } from '../views/subteam.view.js';
+import pool from "../db.js";
+import { withLayout } from "../views/layout.js";
+import { createSubteamPage } from "../views/subteam.view.js";
 
 export const renderCreateSubteam = (req, res) => {
     const error = req.query.error;
@@ -18,24 +18,24 @@ export const renderCreateSubteam = (req, res) => {
  * @param {Object} req - Express request object. Expects req.body.subteamName and req.session.team_id.
  * @param {Object} res - Express response object. Redirects to dashboard on success.
  */
-export async function createSubteam(req, res){
+export async function createSubteam(req, res) {
     const { subteamName } = req.body;
 
     if (!subteamName) {
-        return res.redirect(`/subteam/create-subteam?error=Missing%20field`);
+        return res.redirect("/subteam/create-subteam?error=Missing%20field");
     }
 
-    try{
+    try {
         const existingSubteam = await pool.query(
-            'SELECT id FROM subteam WHERE team_id = $1 AND name = $2',
+            "SELECT id FROM subteam WHERE team_id = $1 AND name = $2",
             [req.session.team_id, subteamName]
         );
 
         if (existingSubteam.rows.length > 0) {
-            return res.redirect('/subteam/create-subteam?error=Subteam%20already%20exists');
+            return res.redirect("/subteam/create-subteam?error=Subteam%20already%20exists");
         }
 
-        const result = await pool.query(
+        await pool.query(
             `
             INSERT INTO subteam (name, team_id, lead_id)
             VALUES ($1, $2, $3)
@@ -43,18 +43,15 @@ export async function createSubteam(req, res){
             `,
             [subteamName, req.session.team_id, req.session.user_id]
         );
-        return res.redirect('/dashboard');
-
-    }
-    catch(err) {
-        console.error(err);
-        return res.redirect('/subteam/create-subteam?error=Server%20Error');
+        return res.redirect("/dashboard");
+    } catch {
+        return res.redirect("/subteam/create-subteam?error=Server%20Error");
     }
 }
 
 /**
  * Deletes a subteam by its ID.
- * Note: Database constraints (CASCADE) should handle the removal of 
+ * Note: Database constraints (CASCADE) should handle the removal of
  * associated projects and tasks.
  * @param {Object} req - Express request object. Expects req.body.id (subteam ID).
  * @param {Object} res - Express response object.
@@ -63,15 +60,10 @@ export async function deleteSubteam(req, res) {
     const subteamID = req.body.id;
 
     try {
-        await pool.query(
-            'DELETE FROM subteam WHERE id = $1',
-            [subteamID]
-        );
-        return res.redirect('/dashboard');
-    }
-    catch(err) {
-        console.error(err);
-        return res.redirect('/dashboard?error=Server%20Error');
+        await pool.query("DELETE FROM subteam WHERE id = $1", [subteamID]);
+        return res.redirect("/dashboard");
+    } catch {
+        return res.redirect("/dashboard?error=Server%20Error");
     }
 }
 
@@ -92,21 +84,18 @@ export async function editSubteam(req, res) {
 
     try {
         const existingSubteam = await pool.query(
-            'SELECT id FROM subteam WHERE team_id = $1 AND name = $2',
+            "SELECT id FROM subteam WHERE team_id = $1 AND name = $2",
             [req.session.team_id, newSubteamName]
         );
         if (existingSubteam.rows.length > 0) {
-            return res.redirect(`/edit-subteam?id=${subteamID}&error=Subteam%20name%20already%20exists`);
+            return res.redirect(
+                `/edit-subteam?id=${subteamID}&error=Subteam%20name%20already%20exists`
+            );
         }
 
-        await pool.query(
-            'UPDATE subteam SET name = $1 WHERE id = $2',
-            [newSubteamName, subteamID]
-        );
-        return res.redirect('/dashboard');
-    }
-    catch(err) {
-        console.error(err);
+        await pool.query("UPDATE subteam SET name = $1 WHERE id = $2", [newSubteamName, subteamID]);
+        return res.redirect("/dashboard");
+    } catch {
         return res.redirect(`/edit-subteam?id=${subteamID}&error=Server%20Error`);
     }
 }
