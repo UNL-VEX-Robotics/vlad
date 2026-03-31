@@ -1,4 +1,5 @@
 -- Reset Tables
+ALTER TABLE team DROP COLUMN lead_id;
 DROP TABLE IF EXISTS task_assignee;
 DROP TABLE IF EXISTS task;
 DROP TABLE IF EXISTS project;
@@ -6,23 +7,28 @@ DROP TABLE IF EXISTS user_subteam;
 DROP TABLE IF EXISTS subteam;
 DROP TABLE IF EXISTS user_account;
 DROP TABLE IF EXISTS team;
+DROP TABLE IF EXISTS session;
 
 -- Team Information
 CREATE TABLE team (
     id SERIAL PRIMARY KEY,
-    name TEXT NOT NULL
+    name TEXT NOT NULL UNIQUE
 );
 
 -- User Account Information
 CREATE TABLE user_account (
     id SERIAL PRIMARY KEY,
-    team_id INT NOT NULL REFERENCES team(id),
+    team_id INT REFERENCES team(id),
     user_name TEXT NOT NULL,
     email TEXT UNIQUE,
     password_hash TEXT NOT NULL,
     reset_token TEXT,
-    reset_expiry TIMESTAMP
+    reset_expiry TIMESTAMP,
+    is_approved BOOLEAN NOT NULL DEFAULT FALSE
 );
+
+-- Add lead_id to team table
+ALTER TABLE team ADD COLUMN lead_id INT REFERENCES user_account(id);
 
 -- Subteam Information
 CREATE TABLE subteam (
@@ -61,6 +67,16 @@ CREATE TABLE task (
     duedate TIMESTAMPTZ
 );
 
+-- Session Information
+CREATE TABLE session (
+    sid VARCHAR NOT NULL PRIMARY KEY COLLATE "default",
+    sess JSON NOT NULL,
+    expire TIMESTAMP(6) NOT NULL
+);
+
+-- Index for performance (helps the server clear out old sessions quickly)
+CREATE INDEX "IDX_session_expire" ON session (expire);
+
 -- Join Table for user_account and task
 CREATE TABLE task_assignee (
     task_id INT NOT NULL REFERENCES task(id),
@@ -88,8 +104,15 @@ DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM user_account) THEN
         -- Password hash placeholder; replace with a real bcrypt hash
-        INSERT INTO user_account (team_id, user_name, email, password_hash)
-        VALUES (1, 'SKERS_Admin', 'skers.vurc@gmail.com', '$2b$12$examplehashhere');
+        INSERT INTO user_account (team_id, user_name, email, password_hash, is_approved)
+        VALUES (1, 'SKERS_Admin', 'skers.vurc@gmail.com', '$2b$12$examplehashhere', true);
+    END IF;
+END$$;
+
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM user_account WHERE id = 1) THEN
+        UPDATE team SET lead_id = 1 WHERE id = 1;
     END IF;
 END$$;
 
