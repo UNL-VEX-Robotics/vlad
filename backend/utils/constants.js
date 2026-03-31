@@ -16,7 +16,7 @@ export const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-
  * Nodemailer Transporter
  * Configured using Gmail SMTP settings from environment variables.
  */
-const verbose = false;
+const verbose = process.env.VERBOSE === 'true';
 export const TRANSPORTER = nodemailer.createTransport({
   service: 'gmail',
   auth: {

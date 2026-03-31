@@ -1,6 +1,5 @@
 import pool from '../db.js';
 import nodeCron from 'node-cron';
-import { ROLES } from '../utils/constants.js';
 import { withLayout } from '../views/layout.js';
 import { notificationsPage } from '../views/notifications.view.js';
 

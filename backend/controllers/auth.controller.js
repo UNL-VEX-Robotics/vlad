@@ -1,7 +1,5 @@
 import bcrypt from 'bcrypt';
 import pool from '../db.js';
-import session from 'express-session';
-import pgSession from 'connect-pg-simple'
 import nodeCron from 'node-cron';
 import { withLayout } from '../views/layout.js';
 import { signupPage, loginPage, createTeamPage, joinTeamPage } from '../views/auth.view.js';

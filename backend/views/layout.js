@@ -232,7 +232,7 @@ export const withLayout = (title, content, req) => {
     return `
     <html>
         <head>
-            <title>${title} | VEXU Manager</title>
+            <title>${title} | VLAD</title>
             ${commonStyles}
             <style>
                 .top-nav {

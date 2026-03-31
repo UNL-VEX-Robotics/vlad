@@ -6,11 +6,8 @@ import adminRoutes from './routes/admin.js';
 import subteamRoutes from './routes/subteam.js';
 import userRoutes from './routes/user.js';
 import notificationRoutes from './routes/notifications.js';
-import { ROLES } from './utils/constants.js';
 import session from 'express-session';
 import pgSession from 'connect-pg-simple';
-import { isAuthenticated, requireRole } from './middleware/auth.middleware.js';
-import commonStyles from './views/layout.js';
 
 
 import bodyParser from "body-parser";
