@@ -6,6 +6,7 @@ import adminRoutes from "./routes/admin.js";
 import subteamRoutes from "./routes/subteam.js";
 import userRoutes from "./routes/user.js";
 import notificationRoutes from "./routes/notifications.js";
+import settingsRoutes from "./routes/settings.js";
 import session from "express-session";
 import pgSession from "connect-pg-simple";
 
@@ -76,6 +77,9 @@ app.use(subteam, subteamRoutes);
 const notifications = "/notifications";
 app.use(notifications, notificationRoutes);
 
+const settings = "/settings";
+app.use(settings, settingsRoutes);
+
 app.use("/", userRoutes);
 
 app.get("/health", async (req, res) => {
@@ -129,5 +133,8 @@ app.get("/create-subteam", (req, res) => res.redirect("/subteam/create-subteam")
 
 // A notification hub that allows users to see all their notifications in one place and mark them as read
 app.get("/notifications", (req, res) => res.redirect("/notifications/hub"));
+
+// A settings page that allows the user to change various settings related to their account and the application
+app.get("/settings", (req, res) => res.redirect("/settings"));
 
 export default app;

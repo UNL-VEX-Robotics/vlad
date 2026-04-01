@@ -223,6 +223,8 @@ export const withLayout = (title, content, req) => {
                 <a href="/profile?user_id=${req.session.user_id}" class="menu-link">My Profile</a>
                 
                 <a href="/notifications" class="menu-link">Notification Hub</a>
+
+                <a href="/settings" class="menu-link">Settings</a>
                 
                 <form action="/auth/logout" method="POST" style="border-top: 1px solid var(--border-color); margin-top: 5px; padding-top: 5px;">
                     <button type="submit" style="color: var(--accent-red);">Log Out</button>

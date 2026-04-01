@@ -55,11 +55,6 @@ const renderMemberRow = (m, userRole, currentUserId) => {
                     <a href="/profile?user_id=${m.id}" class="dropdown-item-link">View Profile</a>
                     
                     ${actionButtons}
-                    
-                    <form action="/report" method="POST" style="margin:0;">
-                        <input type="hidden" name="user_id" value="${m.id}">
-                        <button type="submit">Report</button>
-                    </form>
                 </div>
             </div>
         </li>`;
