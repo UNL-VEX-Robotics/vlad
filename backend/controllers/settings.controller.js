@@ -20,8 +20,6 @@ export const renderSettings = async (req, res) => {
             user: { user_name: req.session.user_name, email: req.session.email },
             settings: settingsRes.rows[0],
             version: pkg.version,
-            error: req.query.error,
-            success: req.query.success === "true",
         };
 
         res.send(withLayout("Settings", settingsPage(pageData), req));
@@ -53,6 +51,6 @@ export async function updateSettings(req, res) {
     }
 }
 
-export async function updateEmail(req, res) {
-    return;
-}
+// export async function updateEmail(req, res) {
+//     return;
+// }

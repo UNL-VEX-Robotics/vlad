@@ -4,7 +4,7 @@
  * @returns {string} The HTML for the settings page.
  */
 export const settingsPage = (data) => {
-    const { user, settings, version, error, success } = data;
+    const { user, settings, version } = data;
 
     return `
     <style>
