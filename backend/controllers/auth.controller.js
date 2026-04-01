@@ -145,7 +145,7 @@ export async function login(req, res) {
 
     try {
         const userResult = await pool.query(
-            "SELECT id, user_name, password_hash, team_id, role FROM user_account WHERE email = $1",
+            "SELECT id, user_name, password_hash, team_id, email, role FROM user_account WHERE email = $1",
             [clean_email]
         );
 
@@ -158,6 +158,7 @@ export async function login(req, res) {
         req.session.team = null;
         req.session.role = user.role;
         req.session.team_id = user.team_id;
+        req.session.email = user.email;
 
         if (user.team_id !== null) {
             const team = await pool.query("SELECT name, lead_id FROM team WHERE id = $1", [
