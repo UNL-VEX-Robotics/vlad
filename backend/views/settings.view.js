@@ -15,6 +15,24 @@ export const settingsPage = (data) => {
             padding: 30px 20px; background: var(--bg-card); display: flex; flex-direction: column; 
         }
 
+        /* Back Button Styling */
+        .back-nav {
+            margin-bottom: 30px;
+        }
+        .back-link {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+        .back-link:hover {
+            color: var(--accent-red);
+        }
+
         .tab-btn { 
             width: 100%; text-align: left; background: none; border: none; padding: 12px; 
             margin-bottom: 5px; cursor: pointer; color: var(--text-muted); border-radius: 6px; 
@@ -77,16 +95,28 @@ export const settingsPage = (data) => {
             padding: 10px 15px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; 
             font-weight: bold; text-transform: uppercase; margin-top: 10px;
         }
+
+        .sidebar-spacer { flex-grow: 1; }
     </style>
 
     <div class="settings-wrapper">
         <div class="settings-sidebar">
-            <h3 style="margin-top:0; color: var(--text-heading); letter-spacing: 1px;">SETTINGS</h3>
+            <div class="back-nav">
+                <a href="/dashboard" class="back-link">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                    Back to Dashboard
+                </a>
+            </div>
+
+            <h3 style="margin-top:0; color: var(--text-heading); letter-spacing: 1px; font-size: 0.75rem; opacity: 0.5;">PREFERENCES</h3>
             <nav class="settings-nav">
                 <button class="tab-btn active" onclick="switchTab(event, 'profile')">Profile</button>
                 <button class="tab-btn" onclick="switchTab(event, 'security')">Security</button>
                 <button class="tab-btn" onclick="switchTab(event, 'prefs')">System Preferences</button>
             </nav>
+            
+            <div class="sidebar-spacer"></div>
+
             <div style="font-size: 0.65rem; color: var(--text-muted); font-family: monospace;">
                 BUILD // <span style="color: var(--accent-red)">v${version}</span>
             </div>
@@ -113,7 +143,7 @@ export const settingsPage = (data) => {
                     <h2 style="color: var(--text-heading); margin-bottom: 30px;">Security</h2>
                     <div class="form-group">
                         <label>Authentication</label>
-                        <button type="button" onclick="location.href='/auth/change-password'" class="vlad-input" style="text-align:left; cursor:pointer;">
+                        <button type="button" onclick="location.href='/reset/forgot-password'" class="vlad-input" style="text-align:left; cursor:pointer;">
                             Update Password →
                         </button>
                     </div>
@@ -189,15 +219,135 @@ export const settingsPage = (data) => {
 
         const initialState = getFormState();
 
-        form.addEventListener('input', () => {
+        const updateDirtyState = () => {
             const isDirty = getFormState() !== initialState;
             dirtyBar.classList.toggle('hidden', !isDirty);
-        });
+        };
 
-        form.addEventListener('change', () => {
-            const isDirty = getFormState() !== initialState;
-            dirtyBar.classList.toggle('hidden', !isDirty);
-        });
+        form.addEventListener('input', updateDirtyState);
+        form.addEventListener('change', updateDirtyState);
     </script>
+    `;
+};
+
+/**
+ * Renders the Request Email Change form content.
+ * @param {string} error - Optional error message from URL query.
+ */
+export const changeEmailPage = (error) => {
+    const errorMessageHtml = error ? `<div class="alert-box">${error}</div>` : "";
+
+    return `
+        <div class="card">
+            <form method="GET" action="/settings/verify-email">
+                <h2>Change Email Address</h2>
+                ${errorMessageHtml}
+                <p style="color: #718096; font-size: 0.9rem; margin-bottom: 20px;">
+                    Enter your <strong>new</strong> email address. we'll send a verification link to confirm the change.
+                </p>
+                
+                <label>New Email Address</label>
+                <input name="pendingEmail" type="email" placeholder="new-email@example.com" inputmode="email" required />
+                
+                <input type="submit" value="Send Verification Link" />
+            </form>
+
+            <a href="/settings" class="secondary-btn">Back to Settings</a>
+        </div>
+    `;
+};
+
+/**
+ * Renders the Verification Sent Page content.
+ */
+export const verificationSentPage = () => {
+    return `
+        <style>
+            .success-icon { font-size: 3rem; color: #48bb78; margin-bottom: 1rem; }
+            .instruction-box {
+                background: #f7fafc; border-radius: 8px; padding: 15px;
+                margin: 20px 0; text-align: left; font-size: 0.9rem;
+                color: #4a5568; border: 1px solid #e2e8f0;
+            }
+        </style>
+
+        <div class="card" style="text-align: center;">
+            <div class="success-icon">✉️</div>
+            <h2>Verify Your New Email</h2>
+            <p style="color: #718096;">We've sent a verification link to your new email address.</p>
+            
+            <div class="instruction-box">
+                <strong>Important Security Note:</strong>
+                <ul style="margin: 10px 0 0 20px; padding: 0;">
+                    <li>A notification was also sent to your <strong>current</strong> email address.</li>
+                    <li>Click the link in the <strong>new</strong> email to finalize the change.</li>
+                    <li>The verification link will expire in 1 hour.</li>
+                </ul>
+            </div>
+
+            <a href="/settings" class="secondary-btn">Return to Settings</a>
+            
+            <p style="font-size: 0.8rem; margin-top: 15px; color: #a0aec0;">
+                Didn't get the email? <a href="/settings/change-email" style="color: #3182ce; text-decoration: none;">Try again</a>
+            </p>
+        </div>
+    `;
+};
+
+/**
+ * Renders the Finalize Email Change form content.
+ * @param {string} token - Verification token
+ * @param {string} pendingEmail - The email waiting to be confirmed
+ * @param {string} error - Optional error message
+ */
+export const finalizeEmailChangePage = (token, pendingEmail, error) => {
+    const errorMessageHtml = error ? `<div class="alert-box">${error}</div>` : "";
+
+    return `
+        <div class="card">
+            <form method="POST" action="/settings/finalize-email">
+                <h2>Finalize Email Change</h2>
+                ${errorMessageHtml}
+                
+                <input type="hidden" name="token" value="${token || ""}" />
+                
+                <p style="color: #4a5568; font-size: 0.9rem; margin-bottom: 20px;">
+                    You are changing your account email to:<br>
+                    <strong style="color: var(--accent-red);">${pendingEmail}</strong>
+                </p>
+
+                <label>Confirm Your Current Password</label>
+                <div class="password-wrapper">
+                    <input type="password" name="password" placeholder="Enter password to confirm" required />
+                </div>
+
+                <input type="submit" value="Update Email Address" />
+            </form>
+
+            <a href="/settings" class="secondary-btn" style="margin-top: 15px;">Cancel and Return to Settings</a>
+        </div>
+    `;
+};
+
+/**
+ * Renders the Email Updated Confirmation Page.
+ * This page is shown after the user is automatically logged out.
+ */
+export const emailUpdateSuccessPage = () => {
+    return `
+        <div class="card" style="text-align: center;">
+            <div style="font-size: 3rem; margin-bottom: 10px;">✅</div>
+            <h2>Email Updated</h2>
+            <p style="color: #4a5568; margin-bottom: 20px;">
+                Your email address has been successfully updated. 
+                <strong>For your security, you have been logged out.</strong>
+            </p>
+            <p style="color: #718096; font-size: 0.9rem; margin-bottom: 20px;">
+                Please use your new email address to log back in.
+            </p>
+            <form action="/auth/login" method="GET">
+                <button type="submit">Log In with New Email</button>
+            </form>
+        </div>
     `;
 };

@@ -78,4 +78,5 @@ EXECUTE FUNCTION create_user_settings();
 
 ALTER TABLE user_account 
 ADD COLUMN pending_email TEXT,
-ADD COLUMN email_verification_token TEXT;
+ADD COLUMN email_verification_token TEXT,
+ADD COLUMN email_token_expiry TIMESTAMP;
