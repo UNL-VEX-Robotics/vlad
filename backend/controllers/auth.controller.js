@@ -5,6 +5,10 @@ import { withLayout } from "../views/layout.js";
 import { signupPage, loginPage, createTeamPage, joinTeamPage } from "../views/auth.view.js";
 import { ROLES, EMAIL_REGEX, SALT_ROUNDS, PASSWORD_REGEX } from "../utils/constants.js";
 
+//TODO: Set up 2fa for users who want it. The only part currently implemented is the database and settings page with the yes or no toggle option
+// but the actual generation of everything else needed for 2fa needs to be implemented. Start with just email based and possibly move
+// onto SMS based or eventually app based in the future but the changes to other parts of the application are needed for these changes
+
 /**
  * Renders the Signup Page (GET)
  */

@@ -239,7 +239,7 @@ export const changeEmailPage = (error) => {
 
     return `
         <div class="card">
-            <form method="GET" action="/settings/verify-email">
+            <form method="POST" action="/settings/verify-email">
                 <h2>Change Email Address</h2>
                 ${errorMessageHtml}
                 <p style="color: #718096; font-size: 0.9rem; margin-bottom: 20px;">
@@ -247,7 +247,7 @@ export const changeEmailPage = (error) => {
                 </p>
                 
                 <label>New Email Address</label>
-                <input name="pendingEmail" type="email" placeholder="new-email@example.com" inputmode="email" required />
+                <input name="pending_email" type="email" placeholder="new-email@example.com" inputmode="email" required />
                 
                 <input type="submit" value="Send Verification Link" />
             </form>
@@ -305,7 +305,7 @@ export const finalizeEmailChangePage = (token, pendingEmail, error) => {
 
     return `
         <div class="card">
-            <form method="POST" action="/settings/finalize-email">
+            <form method="GET" action="/settings/finalize-email">
                 <h2>Finalize Email Change</h2>
                 ${errorMessageHtml}
                 

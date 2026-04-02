@@ -6,6 +6,7 @@ import {
     renderFinalizeEmailChangePage,
     renderVerificationSentPage,
     updateSettings,
+    sendVerificationEmail,
 } from "../controllers/settings.controller.js";
 
 const router = express.Router();
@@ -27,5 +28,8 @@ router.get("/email-update-success", renderEmailUpdateSuccessPage);
 
 // POST /settings/update - Handle settings update from the form submission
 router.post("/update", updateSettings);
+
+// POST /settings/verify-email - Handle email verification request
+router.post("/verify-email", sendVerificationEmail);
 
 export default router;

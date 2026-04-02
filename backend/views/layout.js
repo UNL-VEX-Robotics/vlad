@@ -1,3 +1,6 @@
+//TODO: Set up changing between light, dark and system themes the database and settings page are set up for this but
+// this needs to be implemented in the layout so that it changes to be correct based off of the user settings
+
 // This holds the styles for the HTML including a light and dark mode that go by
 // what the users system settings are this is here to making changing application looks
 export const commonStyles = `
