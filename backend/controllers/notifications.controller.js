@@ -3,7 +3,7 @@ import nodeCron from "node-cron";
 import { withLayout } from "../views/layout.js";
 import { notificationsPage } from "../views/notifications.view.js";
 
-//TODO: Implement Email Notifications for users that enable them in their settings. This is implemented in the database and settings page, 
+//TODO: Implement Email Notifications for users that enable them in their settings. This is implemented in the database and settings page,
 // but we need to add the actual email sending functionality and have it work with the different digest modes (immediate, daily, weekly)
 
 /**

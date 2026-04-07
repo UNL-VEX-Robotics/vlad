@@ -132,6 +132,7 @@ async function checkPassword(plainPassword, hashedPassword) {
 }
 
 /**
+ * TODO: Implement require password reset on login for users who report unauthorized email changes.
  * Handles user authentication.
  * 1. Verifies user existence and password hash.
  * 2. Fetches associated team name if a team_id exists.

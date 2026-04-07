@@ -305,7 +305,7 @@ export const finalizeEmailChangePage = (token, pendingEmail, error) => {
 
     return `
         <div class="card">
-            <form method="GET" action="/settings/finalize-email">
+            <form method="POST" action="/settings/finalize-email">
                 <h2>Finalize Email Change</h2>
                 ${errorMessageHtml}
                 
@@ -348,6 +348,31 @@ export const emailUpdateSuccessPage = () => {
             <form action="/auth/login" method="GET">
                 <button type="submit">Log In with New Email</button>
             </form>
+        </div>
+    `;
+};
+
+/**
+ * Renders the Account Secured/Frozen Page.
+ */
+export const accountSecuredPage = (attempted_email) => {
+    return `
+        <div class="card" style="border-top: 5px solid #ff0000;">
+            <h2 style="color: #ff0000;">Account Secured</h2>
+            <p>We have successfully cancelled the request to change your email to <strong>${attempted_email}</strong>.</p>
+            
+            <div class="alert-box" style="background: #fff5f5; color: #c53030; padding: 15px; border-radius: 6px; margin: 20px 0;">
+                <strong>Security Actions Taken:</strong>
+                <ul style="text-align: left; margin-top: 10px;">
+                    <li>All active sessions have been terminated.</li>
+                    <li>Pending email changes have been cleared.</li>
+                    <li>A password reset is now required to access this account.</li>
+                </ul>
+            </div>
+
+            <p style="font-size: 0.9rem;">To regain access, please go to the login page and use the "Forgot Password" flow to verify your identity.</p>
+            
+            <a href="/auth/login" class="vlad-btn-accent" style="text-decoration:none; display:inline-block;">Go to Login</a>
         </div>
     `;
 };
