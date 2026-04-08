@@ -105,6 +105,7 @@ export async function signup(req, res) {
         req.session.role = result.rows[0].role;
         req.session.team = null;
         req.session.team_id = null;
+        req.session.theme = "system";
         req.session.save((err) => {
             if (err) {
                 logger.error("Error saving session after signup:", err);
@@ -141,27 +142,32 @@ export async function login(req, res) {
             [clean_email]
         );
 
+        const user_settings = await pool.query(
+            "SELECT theme, two_factor_enabled FROM user_settings WHERE user_id = $1",
+            [userResult.rows[0].id]
+        );
+
         const user = userResult.rows[0];
 
         if (!user) {
             return res.redirect("/auth/login?error=Invalid%20Credentials");
         }
-
-        req.session.team = null;
-        req.session.role = user.role;
-        req.session.team_id = user.team_id;
-        req.session.email = user.email;
-
-        if (user.team_id !== null) {
-            const team = await pool.query("SELECT name, lead_id FROM team WHERE id = $1", [
-                user.team_id,
-            ]);
-            req.session.team = team.rows[0].name;
-        }
         const isMatch = await bcrypt.compare(password, user.password_hash);
         if (isMatch) {
-            req.session.user_id = user.id;
+            req.session.team = null;
+            req.session.role = user.role;
+            req.session.team_id = user.team_id;
+            req.session.email = user.email;
+            req.session.theme = user_settings.rows[0].theme || "system";
             req.session.user_name = user.user_name;
+            req.session.user_id = user.id;
+
+            if (user.team_id !== null) {
+                const team = await pool.query("SELECT name, lead_id FROM team WHERE id = $1", [
+                    user.team_id,
+                ]);
+                req.session.team = team.rows[0].name;
+            }
             req.session.save((err) => {
                 if (err) {
                     logger.error("Error saving session after login:", err);

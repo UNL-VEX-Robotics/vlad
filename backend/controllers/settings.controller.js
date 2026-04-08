@@ -147,6 +147,7 @@ export async function updateSettings(req, res) {
                 req.session.user_id,
             ]
         );
+        req.session.theme = theme;
         return res.redirect("/settings?success=Settings%20updated");
     } catch (err) {
         logger.error("Error updating settings:", err);

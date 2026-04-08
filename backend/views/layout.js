@@ -1,33 +1,59 @@
-//TODO: Set up changing between light, dark and system themes the database and settings page are set up for this but
-// this needs to be implemented in the layout so that it changes to be correct based off of the user settings
-
 // This holds the styles for the HTML including a light and dark mode that go by
 // what the users system settings are this is here to making changing application looks
 export const commonStyles = `
 <style>
-    :root {
-        /* Light Mode: White and Red */
-        --bg-body: #f7f9fc;
+    :root[data-theme="light"] {
+        /* High Contrast Light Mode */
+        --bg-body: #f0f2f5; 
         --bg-card: #ffffff;
         --bg-sidebar: #ffffff;
-        --text-main: #1a1a1a;
-        --text-heading: #1a1a1a;
-        --text-label: #4a5568;
-        --text-muted: #718096;
-        --border-color: #e2e8f0;
+        
+        --text-main: #111111;
+        --text-heading: #000000;
+        --text-label: #2d3748;
+        --text-muted: #4a5568;
+        
+        --border-color: #cbd5e0;
         --input-bg: #ffffff;
-        --btn-secondary-bg: #edf2f7;
-        --btn-secondary-text: #4a5568;
-        --accent-red: #e53e3e;
-        --accent-hover: #c53030;
+        
+        --btn-secondary-bg: #e2e8f0;
+        --btn-secondary-text: #1a202c;
+        
+        --accent-red: #d32f2f;
+        --accent-hover: #b71c1c;
         
         --badge-approved-bg: #c6f6d5;
-        --badge-approved-text: #22543d;
-        --badge-pending-bg: #fff5f5;
-        --badge-pending-text: #c53030;
+        --badge-approved-text: #1c4532;
+        --badge-pending-bg: #fed7d7;
+        --badge-pending-text: #9b2c2c;
+        
         --alert-bg: #fff5f5;
         --alert-text: #c53030;
-        --alert-border: #feb2b2;
+        --alert-border: #fc8181;
+    }
+
+    [data-theme="dark"] {
+        --bg-body: #000000;
+        --bg-card: #121212;
+        --bg-sidebar: #121212;
+        --text-main: #f7fafc;
+        --text-heading: #ffffff;
+        --text-label: #a0aec0;
+        --text-muted: #718096;
+        --border-color: #2d2d2d;
+        --input-bg: #1a1a1a;
+        --btn-secondary-bg: #2d2d2d;
+        --btn-secondary-text: #f7fafc;
+        --accent-red: #ff4d4d;
+        --accent-hover: #ff6666;
+
+        --badge-approved-bg: #1c4532;
+        --badge-approved-text: #9ae6b4;
+        --badge-pending-bg: #441919;
+        --badge-pending-text: #feb2b2;
+        --alert-bg: #822727;
+        --alert-text: #ffffff;
+        --alert-border: #e53e3e;
     }
 
     @media (prefers-color-scheme: dark) {
@@ -214,6 +240,8 @@ export const commonStyles = `
  * @param {Object} req - The request object (to show user name/role in nav).
  */
 export const withLayout = (title, content, req) => {
+    const user_theme = req.session.theme || "system";
+
     // Check if user is logged in to show the account menu
     const userMenu =
         req.session && req.session.user_name
@@ -238,7 +266,8 @@ export const withLayout = (title, content, req) => {
             : "";
 
     return `
-    <html>
+    <!DOCTYPE html>
+    <html lang="en" data-theme="${user_theme}">
         <head>
             <title>${title} | VLAD</title>
             ${commonStyles}
@@ -300,6 +329,16 @@ export const withLayout = (title, content, req) => {
                     background: var(--bg-body);
                 }
             </style>
+            <script>
+                // This script handles the "System" logic immediately on load
+                (function() {
+                    const theme = "${user_theme}";
+                    if (theme === 'system') {
+                        const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                        document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+                    }
+                })();
+            </script>
         </head>
         <body>
             <div class="top-nav">
