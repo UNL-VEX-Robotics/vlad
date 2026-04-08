@@ -3,6 +3,7 @@ import crypto from "crypto";
 import bcrypt from "bcrypt";
 import nodeCron from "node-cron";
 import { TRANSPORTER, SALT_ROUNDS, EMAIL_REGEX, PASSWORD_REGEX } from "../utils/constants.js";
+import logger from "../utils/logger.js";
 import { withLayout } from "../views/layout.js";
 import {
     forgotPasswordPage,
@@ -73,7 +74,7 @@ nodeCron.schedule(
                 "UPDATE user_account SET reset_token = NULL, reset_expiry = NULL WHERE reset_expiry < NOW()"
             );
         } catch (err) {
-            console.error("Error clearing expired reset tokens:", err);
+            logger.error("Error clearing expired reset tokens:", err);
         }
     },
     {
@@ -158,7 +159,8 @@ export async function sendResetPasswordEmail(req, res) {
 
         await TRANSPORTER.sendMail(mailOptions);
         res.redirect("/reset/email-sent");
-    } catch {
+    } catch (err) {
+        logger.error("Error sending password reset email:", err);
         return res.redirect("/reset/forgot-password?error=Server%20Error");
     }
 }
@@ -213,7 +215,8 @@ export async function resetPassword(req, res) {
         );
 
         res.redirect("/reset/reset-confirmation");
-    } catch {
+    } catch (err) {
+        logger.error("Error resetting password:", err);
         return res.redirect("/reset-password?error=Server%20Error");
     }
 }

@@ -2,6 +2,7 @@ import pool from "../db.js";
 import { withLayout } from "../views/layout.js";
 import { dashboardPage, profilePage } from "../views/user.view.js";
 import { ROLES } from "../utils/constants.js";
+import logger from "../utils/logger.js";
 
 /**
  * Renders the user dashboard page.
@@ -63,7 +64,8 @@ export const renderDashboard = async (req, res) => {
         };
         res.send(withLayout("Dashboard", dashboardPage(pageData), req));
     } catch (err) {
-        res.status(500).json({ error: "Failed to load dashboard", details: err.message });
+        logger.error("Error rendering dashboard:", err);
+        return res.status(500).json({ error: "Failed to load dashboard", details: err.message });
     }
 };
 
@@ -98,6 +100,7 @@ export const renderProfile = async (req, res) => {
         const content = profilePage(user, sessionUser, error, ROLES);
         res.send(withLayout(`${user.user_name}'s Profile`, content, req));
     } catch (err) {
+        logger.error("Error rendering profile page:", err);
         res.status(500).json({ error: "Failed to load profile", details: err.message });
     }
 };

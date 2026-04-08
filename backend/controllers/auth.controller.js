@@ -4,6 +4,7 @@ import nodeCron from "node-cron";
 import { withLayout } from "../views/layout.js";
 import { signupPage, loginPage, createTeamPage, joinTeamPage } from "../views/auth.view.js";
 import { ROLES, EMAIL_REGEX, SALT_ROUNDS, PASSWORD_REGEX } from "../utils/constants.js";
+import logger from "../utils/logger.js";
 
 //TODO: Set up 2fa for users who want it. The only part currently implemented is the database and settings page with the yes or no toggle option
 // but the actual generation of everything else needed for 2fa needs to be implemented. Start with just email based and possibly move
@@ -106,28 +107,14 @@ export async function signup(req, res) {
         req.session.team_id = null;
         req.session.save((err) => {
             if (err) {
+                logger.error("Error saving session after signup:", err);
                 return res.redirect("/auth/signup?error=Server%20Error");
             }
             res.redirect("/dashboard");
         });
-    } catch {
+    } catch (err) {
+        logger.error("Error during user signup:", err);
         return res.redirect("/auth/signup?error=Server%20Error");
-    }
-}
-
-/**
- * Internal helper to verify plain text password against stored hash.
- * @param {string} plainPassword - User-provided password.
- * @param {string} hashedPassword - Hash from database.
- * @param {Object} res - Express response object.
- * @returns {Promise<boolean>} True if match, false otherwise.
- */
-async function checkPassword(plainPassword, hashedPassword) {
-    try {
-        const isMatch = await bcrypt.compare(plainPassword, hashedPassword);
-        return isMatch;
-    } catch {
-        return false;
     }
 }
 
@@ -171,12 +158,13 @@ export async function login(req, res) {
             ]);
             req.session.team = team.rows[0].name;
         }
-
-        if (await checkPassword(password, user.password_hash, res)) {
+        const isMatch = await bcrypt.compare(password, user.password_hash);
+        if (isMatch) {
             req.session.user_id = user.id;
             req.session.user_name = user.user_name;
             req.session.save((err) => {
                 if (err) {
+                    logger.error("Error saving session after login:", err);
                     return res.redirect("/auth/login?error=Server%20Error");
                 }
                 res.redirect("/dashboard");
@@ -184,7 +172,8 @@ export async function login(req, res) {
         } else {
             return res.redirect("/auth/login?error=Invalid%20Credentials");
         }
-    } catch {
+    } catch (err) {
+        logger.error("Error during user login:", err);
         return res.redirect("/auth/login?error=Server%20Error");
     }
 }
@@ -197,7 +186,7 @@ export async function login(req, res) {
 export async function logout(req, res) {
     await req.session.destroy((err) => {
         if (err) {
-            res.status(500).json({ error: "Failed to log out", details: err.message });
+            logger.error("Error destroying session during logout:", err);
             return res.redirect("/dashboard?error=Server%20Error");
         }
         res.clearCookie("connect.sid");
@@ -247,13 +236,14 @@ export async function createTeam(req, res) {
         req.session.role = ROLES.OWNER;
         req.session.save((err) => {
             if (err) {
-                res.status(500).json({ error: "Failed to save session", details: err.message });
+                logger.error("Error saving session after team creation:", err);
                 return res.redirect("/auth/create-team?error=Server%20Error");
             }
             res.redirect("/dashboard");
         });
-    } catch {
+    } catch (err) {
         await client.query("ROLLBACK");
+        logger.error("Error during team creation:", err);
         return res.redirect("/auth/create-team?error=Server%20Error");
     } finally {
         client.release();
@@ -285,12 +275,13 @@ export async function teamRequest(req, res) {
         req.session.team_id = team_id;
         req.session.save((err) => {
             if (err) {
-                res.status(500).json({ error: "Failed to save session", details: err.message });
+                logger.error("Error saving session after team join request:", err);
                 return res.redirect("/auth/join-team?error=Server%20Error");
             }
             res.redirect("/dashboard");
         });
-    } catch {
+    } catch (err) {
+        logger.error("Error during team join request:", err);
         return res.redirect("/auth/join-team?error=Server%20Error");
     }
 }
@@ -304,7 +295,7 @@ nodeCron.schedule(
         try {
             await pool.query("DELETE FROM session WHERE expire < NOW()");
         } catch (err) {
-            console.error("Error cleaning up sessions:", err);
+            logger.error("Error clearing expired sessions:", err);
         }
     },
     {

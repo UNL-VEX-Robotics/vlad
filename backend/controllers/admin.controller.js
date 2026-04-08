@@ -1,5 +1,6 @@
 import pool from "../db.js";
 import { ROLES } from "../utils/constants.js";
+import logger from "../utils/logger.js";
 import { withLayout } from "../views/layout.js";
 import { teamRequestsPage } from "../views/admin.view.js";
 
@@ -21,8 +22,8 @@ export const renderTeamRequests = async (req, res) => {
 
         const content = teamRequestsPage(requests.rows);
         res.send(withLayout("Team Requests", content, req));
-    } catch {
-        res.status(500).send("Error loading requests");
+    } catch (err) {
+        logger.error("Error rendering team requests page:", err);
     }
 };
 
@@ -41,8 +42,9 @@ export async function acceptUserRequest(req, res) {
         );
 
         res.redirect("/admin/team-requests");
-    } catch {
-        return res.redirect("/team-requests?error=Server%20Error");
+    } catch (err) {
+        logger.error("Error accepting user request:", err);
+        return res.redirect("/admin/team-requests?error=Server%20Error");
     }
 }
 
@@ -71,7 +73,8 @@ export async function rejectUserRequest(req, res) {
             ]
         );
         res.redirect("/admin/team-requests");
-    } catch {
+    } catch (err) {
+        logger.error("Error rejecting user request to join team:", err);
         return res.redirect("/admin/team-requests?error=Server%20Error");
     }
 }
@@ -96,7 +99,13 @@ export async function removeUserFromTeam(req, res) {
             [user_id, "Removed from Team: " + req.session.team, reason, "removal"]
         );
         return res.redirect("/dashboard");
-    } catch {
+    } catch (err) {
+        logger.error("Error removing user from team:", {
+            error: err,
+            user: user_id,
+            reason: reason,
+            team: req.session.team,
+        });
         return res.redirect("/dashboard?error=System%20Error");
     }
 }
@@ -127,7 +136,8 @@ export async function changeUserRole(req, res) {
             );
         }
         return res.redirect("/dashboard");
-    } catch {
+    } catch (err) {
+        logger.error("Error changing user role:", err);
         return res.redirect("/dashboard?error=Failed%20to%20promote%20user");
     }
 }

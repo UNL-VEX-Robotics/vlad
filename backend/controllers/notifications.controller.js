@@ -2,6 +2,7 @@ import pool from "../db.js";
 import nodeCron from "node-cron";
 import { withLayout } from "../views/layout.js";
 import { notificationsPage } from "../views/notifications.view.js";
+import logger from "../utils/logger.js";
 
 //TODO: Implement Email Notifications for users that enable them in their settings. This is implemented in the database and settings page,
 // but we need to add the actual email sending functionality and have it work with the different digest modes (immediate, daily, weekly)
@@ -24,8 +25,9 @@ export const renderNotifications = async (req, res) => {
 
         const content = notificationsPage(result.rows);
         res.send(withLayout("Notification Hub", content, req));
-    } catch {
-        res.status(500).send("Error loading notifications");
+    } catch (err) {
+        logger.error("Error rendering notifications page:", err);
+        return res.redirect("/dashboard?error=Server%20Error");
     }
 };
 
@@ -40,7 +42,7 @@ nodeCron.schedule(
                 "DELETE FROM notifications WHERE created_at < NOW() - INTERVAL '30 days'"
             );
         } catch (err) {
-            console.error("Error clearing old notifications:", err);
+            logger.error("Error clearing old notifications:", err);
         }
     },
     {
@@ -62,7 +64,8 @@ export async function markAsRead(req, res) {
         ]);
         const referer = req.get("Referer") || "/dashboard";
         return res.redirect(referer);
-    } catch {
+    } catch (err) {
+        logger.error("Error marking notification as read:", err);
         return res.redirect("/notifications?error=Server%20Error");
     }
 }
@@ -79,7 +82,8 @@ export async function markAllAsRead(req, res) {
         ]);
         const referer = req.get("Referer") || "/dashboard";
         return res.redirect(referer);
-    } catch {
+    } catch (err) {
+        logger.error("Error marking all notifications as read:", err);
         return res.redirect("/notifications?error=Server%20Error");
     }
 }
@@ -94,7 +98,8 @@ export async function deleteNotifications(req, res) {
     try {
         await pool.query("DELETE FROM notifications WHERE id = $1", [notification_id]);
         return res.redirect("/notifications");
-    } catch {
+    } catch (err) {
+        logger.error("Error deleting notifications:", err);
         return res.redirect("/notifications?error=Server%20Error");
     }
 }
@@ -108,7 +113,8 @@ export async function deleteAllNotifications(req, res) {
     try {
         await pool.query("DELETE FROM notifications WHERE user_id = $1", [req.session.user_id]);
         return res.redirect("/notifications/hub");
-    } catch {
+    } catch (err) {
+        logger.error("Error deleting all notifications:", err);
         return res.redirect("/notifications/hub?error=Server%20Error");
     }
 }

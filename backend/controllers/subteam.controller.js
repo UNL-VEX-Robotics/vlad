@@ -1,7 +1,13 @@
 import pool from "../db.js";
 import { withLayout } from "../views/layout.js";
 import { createSubteamPage } from "../views/subteam.view.js";
+import logger from "../utils/logger.js";
 
+/**
+ * Renders the create subteam page.
+ * @param {Object} req - Express request object.
+ * @param {Object} res - Express response object.
+ */
 export const renderCreateSubteam = (req, res) => {
     const error = req.query.error;
     const primaryTeam = req.session.team;
@@ -44,7 +50,8 @@ export async function createSubteam(req, res) {
             [subteamName, req.session.team_id, req.session.user_id]
         );
         return res.redirect("/dashboard");
-    } catch {
+    } catch (err) {
+        logger.error("Error creating subteam:", err);
         return res.redirect("/subteam/create-subteam?error=Server%20Error");
     }
 }
@@ -62,7 +69,8 @@ export async function deleteSubteam(req, res) {
     try {
         await pool.query("DELETE FROM subteam WHERE id = $1", [subteamID]);
         return res.redirect("/dashboard");
-    } catch {
+    } catch (err) {
+        logger.error("Error deleting subteam:", err);
         return res.redirect("/dashboard?error=Server%20Error");
     }
 }
@@ -95,7 +103,8 @@ export async function editSubteam(req, res) {
 
         await pool.query("UPDATE subteam SET name = $1 WHERE id = $2", [newSubteamName, subteamID]);
         return res.redirect("/dashboard");
-    } catch {
+    } catch (err) {
+        logger.error("Error editing subteam:", err);
         return res.redirect(`/edit-subteam?id=${subteamID}&error=Server%20Error`);
     }
 }

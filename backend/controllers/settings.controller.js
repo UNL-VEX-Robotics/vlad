@@ -13,6 +13,7 @@ import { TRANSPORTER, EMAIL_REGEX } from "../utils/constants.js";
 import crypto from "crypto";
 import bcrypt from "bcrypt";
 import nodeCron from "node-cron";
+import logger from "../utils/logger.js";
 
 /**
  * Renders the settings page.
@@ -35,7 +36,7 @@ export const renderSettings = async (req, res) => {
 
         res.send(withLayout("Settings", settingsPage(pageData), req));
     } catch (err) {
-        res.status(500).json({ error: "Failed to load settings", details: err.message });
+        logger.error("Error rendering settings page:", err);
     }
 };
 
@@ -87,8 +88,8 @@ export const renderFinalizeEmailChangePage = async (req, res) => {
                 req
             )
         );
-    } catch {
-        return res.redirect("/settings/change-email?error=Server%20Error");
+    } catch (err) {
+        logger.error("Error rendering finalize email change page:", err);
     }
 };
 
@@ -147,7 +148,8 @@ export async function updateSettings(req, res) {
             ]
         );
         return res.redirect("/settings?success=Settings%20updated");
-    } catch {
+    } catch (err) {
+        logger.error("Error updating settings:", err);
         return res.redirect("/settings?error=Server%20Error");
     }
 }
@@ -222,7 +224,8 @@ export async function sendVerificationEmail(req, res) {
     </div>`,
         });
         return res.redirect("/settings/verify-email");
-    } catch {
+    } catch (err) {
+        logger.error("Error sending email change verification:", err);
         return res.redirect("/settings/change-email?error=Server%20Error");
     }
 }
@@ -292,7 +295,8 @@ export async function finalizeEmailChange(req, res) {
             res.clearCookie("connect.sid");
             return res.redirect("/settings/email-update-success");
         });
-    } catch {
+    } catch (err) {
+        logger.error("Error finalizing email change:", err);
         return res.redirect("/settings/change-email?error=Server%20Error");
     }
 }
@@ -345,10 +349,21 @@ export async function reportUnauthorizedEmailChange(req, res) {
             [result.rows[0].id]
         );
 
+        logger.warn(
+            `
+            Unauthorized email change reported for user ID ${result.rows[0].id}.
+            `,
+            {
+                user_id: result.rows[0].id,
+                attempted_email: result.rows[0].pending_email,
+            }
+        );
+
         return res.redirect(
             "/settings/account-secured?attempted_email=" + result.rows[0].pending_email
         );
-    } catch {
+    } catch (err) {
+        logger.error("Error reporting unauthorized email change:", err);
         return res.redirect("/auth/login?error=Server%20Error");
     }
 }
@@ -364,7 +379,7 @@ nodeCron.schedule(
                 "UPDATE user_account SET pending_email = NULL, email_verification_token = NULL, email_token_expiry = NULL WHERE email_token_expiry < NOW()"
             );
         } catch (err) {
-            console.error("Error clearing expired email verification tokens:", err);
+            logger.error("Error clearing expired email change tokens:", err);
         }
     },
     {
