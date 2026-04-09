@@ -352,12 +352,8 @@ export async function reportUnauthorizedEmailChange(req, res) {
 
         logger.warn(
             `
-            Unauthorized email change reported for user ID ${result.rows[0].id}.
-            `,
-            {
-                user_id: result.rows[0].id,
-                attempted_email: result.rows[0].pending_email,
-            }
+            Unauthorized email change reported for user ID ${result.rows[0].id} and attempted email ${result.rows[0].pending_email}
+            `
         );
 
         return res.redirect(

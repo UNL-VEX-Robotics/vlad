@@ -120,7 +120,6 @@ export async function signup(req, res) {
 }
 
 /**
- * TODO: Implement require password reset on login for users who report unauthorized email changes.
  * Handles user authentication.
  * 1. Verifies user existence and password hash.
  * 2. Fetches associated team name if a team_id exists.
@@ -138,7 +137,7 @@ export async function login(req, res) {
 
     try {
         const userResult = await pool.query(
-            "SELECT id, user_name, password_hash, team_id, email, role FROM user_account WHERE email = $1",
+            "SELECT id, user_name, password_hash, team_id, email, role, require_password_reset FROM user_account WHERE email = $1",
             [clean_email]
         );
 
@@ -153,7 +152,7 @@ export async function login(req, res) {
             return res.redirect("/auth/login?error=Invalid%20Credentials");
         }
         const isMatch = await bcrypt.compare(password, user.password_hash);
-        if (isMatch) {
+        if (isMatch && !user.require_password_reset) {
             req.session.team = null;
             req.session.role = user.role;
             req.session.team_id = user.team_id;
@@ -175,6 +174,8 @@ export async function login(req, res) {
                 }
                 res.redirect("/dashboard");
             });
+        } else if (isMatch && user.require_password_reset) {
+            return res.redirect("/reset/forgot-password?error=Password%20Reset%20Required");
         } else {
             return res.redirect("/auth/login?error=Invalid%20Credentials");
         }
