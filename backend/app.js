@@ -1,5 +1,8 @@
 import express from "express";
 import helmet from "helmet";
+import compression from "compression";
+import morgan from "morgan";
+import hpp from "hpp";
 import db from "./db.js";
 import authRoutes from "./routes/auth.js";
 import emailRoutes from "./routes/reset.js";
@@ -27,8 +30,11 @@ app.use(
         contentSecurityPolicy: false,
     })
 );
+app.use(compression());
+app.use(morgan('dev'));
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(hpp());
 
 app.use(
     session({
