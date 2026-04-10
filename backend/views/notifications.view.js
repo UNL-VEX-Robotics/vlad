@@ -13,7 +13,7 @@ export const notificationsPage = (notifications) => {
                 <div>
                     <h4 class="notif-title">${n.title}</h4>
                     <span class="notif-timestamp">
-                        ${new Date(n.created_at).toLocaleString()}
+                        ${new Date(n.createdAt).toLocaleString()}
                     </span>
                 </div>
                 <form action="/notifications/delete" method="POST" style="margin:0;">

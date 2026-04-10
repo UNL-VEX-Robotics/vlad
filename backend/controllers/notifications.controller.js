@@ -1,8 +1,9 @@
-import pool from "../db.js";
+import db from "../db.js";
 import nodeCron from "node-cron";
 import { withLayout } from "../views/layout.js";
 import { notificationsPage } from "../views/notifications.view.js";
 import logger from "../utils/logger.js";
+import { Op } from "sequelize";
 
 //TODO: Implement Email Notifications for users that enable them in their settings. This is implemented in the database and settings page,
 // but we need to add the actual email sending functionality and have it work with the different digest modes (immediate, daily, weekly)
@@ -14,16 +15,19 @@ import logger from "../utils/logger.js";
  */
 export const renderNotifications = async (req, res) => {
     try {
-        const result = await pool.query(
-            `SELECT id, title, message, created_at, is_read 
-             FROM notifications 
-             WHERE user_id = $1 
-             AND created_at > NOW() - INTERVAL '30 days'
-             ORDER BY created_at DESC`,
-            [req.session.user_id]
-        );
+        const notifications = await db.notifications.findAll({
+            where: {
+                user_id: req.session.user_id,
+                createdAt: {
+                    // WHERE createdAt > (NOW() - 30 days)
+                    [Op.gt]: new Date(new Date() - 30 * 24 * 60 * 60 * 1000),
+                },
+            },
+            attributes: ["id", "title", "message", "createdAt", "is_read"],
+            order: [["createdAt", "DESC"]],
+        });
 
-        const content = notificationsPage(result.rows);
+        const content = notificationsPage(notifications.map((n) => n.get({ plain: true })));
         res.send(withLayout("Notification Hub", content, req));
     } catch (err) {
         logger.error("Error rendering notifications page:", err);
@@ -38,9 +42,13 @@ nodeCron.schedule(
     "0 2 * * *",
     async () => {
         try {
-            await pool.query(
-                "DELETE FROM notifications WHERE created_at < NOW() - INTERVAL '30 days'"
-            );
+            await db.notifications.destroy({
+                where: {
+                    createdAt: {
+                        [Op.lt]: new Date(new Date() - 30 * 24 * 60 * 60 * 1000),
+                    },
+                },
+            });
         } catch (err) {
             logger.error("Error clearing old notifications:", err);
         }
@@ -59,9 +67,7 @@ nodeCron.schedule(
 export async function markAsRead(req, res) {
     const { notification_id } = req.body;
     try {
-        await pool.query("UPDATE notifications SET is_read = TRUE WHERE id = $1", [
-            notification_id,
-        ]);
+        await db.notifications.update({ is_read: true }, { where: { id: notification_id } });
         const referer = req.get("Referer") || "/dashboard";
         return res.redirect(referer);
     } catch (err) {
@@ -77,9 +83,10 @@ export async function markAsRead(req, res) {
  */
 export async function markAllAsRead(req, res) {
     try {
-        await pool.query("UPDATE notifications SET is_read = TRUE WHERE user_id = $1", [
-            req.session.user_id,
-        ]);
+        await db.notifications.update(
+            { is_read: true },
+            { where: { user_id: req.session.user_id } }
+        );
         const referer = req.get("Referer") || "/dashboard";
         return res.redirect(referer);
     } catch (err) {
@@ -96,7 +103,9 @@ export async function markAllAsRead(req, res) {
 export async function deleteNotifications(req, res) {
     const { notification_id } = req.body;
     try {
-        await pool.query("DELETE FROM notifications WHERE id = $1", [notification_id]);
+        await db.notifications.destroy({
+            where: { id: notification_id },
+        });
         return res.redirect("/notifications");
     } catch (err) {
         logger.error("Error deleting notifications:", err);
@@ -111,7 +120,9 @@ export async function deleteNotifications(req, res) {
  */
 export async function deleteAllNotifications(req, res) {
     try {
-        await pool.query("DELETE FROM notifications WHERE user_id = $1", [req.session.user_id]);
+        await db.notifications.destroy({
+            where: { user_id: req.session.user_id },
+        });
         return res.redirect("/notifications/hub");
     } catch (err) {
         logger.error("Error deleting all notifications:", err);

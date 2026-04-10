@@ -1,4 +1,4 @@
-import pool from "../db.js";
+import db from "../db.js";
 import { withLayout } from "../views/layout.js";
 import {
     changeEmailPage,
@@ -14,6 +14,7 @@ import crypto from "crypto";
 import bcrypt from "bcrypt";
 import nodeCron from "node-cron";
 import logger from "../utils/logger.js";
+import { Op } from "sequelize";
 
 /**
  * Renders the settings page.
@@ -24,13 +25,13 @@ export const renderSettings = async (req, res) => {
     try {
         const userId = req.session.user_id;
 
-        const settingsRes = await pool.query("SELECT * FROM user_settings WHERE user_id = $1", [
-            userId,
-        ]);
+        const settings = await db.user_settings.findOne({
+            where: { user_id: userId },
+        });
 
         const pageData = {
             user: { user_name: req.session.user_name, email: req.session.email },
-            settings: settingsRes.rows[0],
+            settings: settings,
             version: pkg.version,
         };
 
@@ -73,18 +74,20 @@ export const renderFinalizeEmailChangePage = async (req, res) => {
     }
     try {
         const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
-        const result = await pool.query(
-            `
-            SELECT pending_email FROM user_account WHERE email_verification_token = $1 AND email_token_expiry > NOW()`,
-            [hashedToken]
-        );
-        if (result.rows.length === 0) {
+        const user = await db.user_account.findOne({
+            where: {
+                email_verification_token: hashedToken,
+                email_token_expiry: { [Op.gt]: new Date() },
+            },
+            attributes: ["pending_email"],
+        });
+        if (!user) {
             return res.redirect("/settings/change-email?error=Invalid%20or%20Expired%20Token");
         }
         return res.send(
             withLayout(
                 "Finalize Email Change",
-                finalizeEmailChangePage(token, result.rows[0].pending_email),
+                finalizeEmailChangePage(token, user.pending_email),
                 req
             )
         );
@@ -125,28 +128,31 @@ export async function updateSettings(req, res) {
         req.body;
 
     try {
-        // Update the user's name in the user_account table
-        if (user_name !== req.session.user_name) {
-            await pool.query("UPDATE user_account SET user_name = $1 WHERE id = $2", [
-                user_name,
-                req.session.user_id,
-            ]);
-        }
+        await db.sequelize.transaction(async (t) => {
+            // Update name in user_account if changed
+            if (user_name !== req.session.user_name) {
+                await db.user_account.update(
+                    { user_name },
+                    { where: { id: req.session.user_id }, transaction: t }
+                );
+                req.session.user_name = user_name;
+            }
 
-        // Update the users settings in the database
-        await pool.query(
-            `
-            UPDATE user_settings 
-            SET theme = $1, email_notifications = $2, email_digest_mode = $3, two_factor_enabled = $4, updated_at = NOW()
-            WHERE user_id = $5`,
-            [
-                theme,
-                email_notifications === "on",
-                email_digest_mode,
-                two_factor_enabled === "on",
-                req.session.user_id,
-            ]
-        );
+            // Update user_settings
+            await db.user_settings.update(
+                {
+                    theme,
+                    email_notifications: email_notifications === "on",
+                    email_digest_mode,
+                    two_factor_enabled: two_factor_enabled === "on",
+                    updatedAt: new Date(),
+                },
+                {
+                    where: { user_id: req.session.user_id },
+                    transaction: t,
+                }
+            );
+        });
         req.session.theme = theme;
         return res.redirect("/settings?success=Settings%20updated");
     } catch (err) {
@@ -172,12 +178,15 @@ export async function sendVerificationEmail(req, res) {
     const expires = new Date(Date.now() + 3600000);
 
     try {
-        await pool.query(
-            `
-            UPDATE user_account
-            SET pending_email = $1, email_verification_token = $2, email_token_expiry = $3
-            WHERE id = $4`,
-            [pending_email, hashedToken, expires, req.session.user_id]
+        await db.user_account.update(
+            {
+                pending_email,
+                email_verification_token: hashedToken,
+                email_token_expiry: expires,
+            },
+            {
+                where: { id: req.session.user_id },
+            }
         );
 
         const verificationLink = `${req.protocol}://${req.get("host")}/settings/finalize-email-change?token=${token}`;
@@ -243,50 +252,47 @@ export async function finalizeEmailChange(req, res) {
     try {
         const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
-        const result = await pool.query(
-            `
-            SELECT pending_email FROM user_account WHERE email_verification_token = $1 AND email_token_expiry > NOW()`,
-            [hashedToken]
-        );
+        const user = await db.user_account.findOne({
+            where: {
+                email_verification_token: hashedToken,
+                email_token_expiry: { [Op.gt]: new Date() },
+            },
+        });
 
-        if (result.rows.length === 0) {
+        if (!user) {
             return res.redirect("/settings/change-email?error=Invalid%20or%20Expired%20Token");
         }
 
-        const pending_email = result.rows[0].pending_email;
-
-        const userResult = await pool.query(
-            "SELECT password_hash FROM user_account WHERE email = $1",
-            [req.session.email]
-        );
-        const passwordHash = userResult.rows[0].password_hash;
-        const passwordMatch = await bcrypt.compare(password, passwordHash);
+        const passwordMatch = await bcrypt.compare(password, user.password_hash);
         if (!passwordMatch) {
             return res.redirect(
-                "/settings/finalize-email-change?token=" + token + "&error=Incorrect%20Password"
+                `/settings/finalize-email-change?token=${token}&error=Incorrect%20Password`
             );
         }
-        await pool.query(
-            `
-            UPDATE user_account
-            SET email = $1, pending_email = NULL, email_verification_token = NULL, email_token_expiry = NULL
-            WHERE email_verification_token = $2 AND email_token_expiry > NOW()`,
-            [pending_email, hashedToken]
-        );
 
-        await pool.query(
-            `
-            INSERT INTO notifications (user_id, title, message, type, created_at)
-            VALUES ($1, $2, $3, $4, NOW())`,
-            [
-                req.session.user_id,
-                "Email Updated",
-                "Your account email has been successfully updated to " + pending_email,
-                "email_change",
-            ]
-        );
+        const newEmail = user.pending_email;
 
-        req.session.email = pending_email;
+        await db.sequelize.transaction(async (t) => {
+            await user.update(
+                {
+                    email: newEmail,
+                    pending_email: null,
+                    email_verification_token: null,
+                    email_token_expiry: null,
+                },
+                { transaction: t }
+            );
+
+            await db.notifications.create(
+                {
+                    user_id: user.id,
+                    title: "Email Updated",
+                    message: `Your account email has been successfully updated to ${newEmail}`,
+                    type: "email_change",
+                },
+                { transaction: t }
+            );
+        });
 
         await req.session.destroy((err) => {
             if (err) {
@@ -313,52 +319,51 @@ export async function reportUnauthorizedEmailChange(req, res) {
     try {
         const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
-        const result = await pool.query(
-            `
-            SELECT id, pending_email
-            FROM user_account
-            WHERE email_verification_token = $1`,
-            [hashedToken]
-        );
+        const user = await db.user_account.findOne({
+            where: { email_verification_token: hashedToken },
+        });
 
-        if (result.rows.length === 0) {
+        if (!user) {
             return res.redirect("/auth/login?error=Invalid%20Token");
         }
 
-        await pool.query(
-            `
-            UPDATE user_account 
-            SET pending_email = NULL, email_verification_token = NULL, email_token_expiry = NULL, require_password_reset = TRUE
-            WHERE email_verification_token = $1`,
-            [hashedToken]
-        );
-        await pool.query(
-            `
-            INSERT INTO notifications (user_id, title, message, type, created_at)
-            VALUES ($1, $2, $3, $4, NOW())`,
-            [
-                result.rows[0].id,
-                "Unauthorized Email Change Attempt",
-                "A request was made to change your email address that you did not authorize. If this was not you, we recommend changing your password and enabling two-factor authentication for your account.",
-                "security_alert",
-            ]
-        );
-        await pool.query(
-            `
-            DELETE FROM session
-            WHERE sess::json->>'user_id' = $1`,
-            [result.rows[0].id]
-        );
+        const attemptedEmail = user.pending_email;
+
+        await db.sequelize.transaction(async (t) => {
+            await user.update(
+                {
+                    pending_email: null,
+                    email_verification_token: null,
+                    email_token_expiry: null,
+                    require_password_reset: true,
+                },
+                { transaction: t }
+            );
+
+            await db.notifications.create(
+                {
+                    user_id: user.id,
+                    title: "Unauthorized Email Change Attempt",
+                    message:
+                        "A request was made to change your email address that you did not authorize.",
+                    type: "security_alert",
+                },
+                { transaction: t }
+            );
+
+            await db.sequelize.query("DELETE FROM session WHERE sess::json->>'user_id' = :id", {
+                replacements: { id: user.id.toString() },
+                transaction: t,
+            });
+        });
 
         logger.warn(
             `
-            Unauthorized email change reported for user ID ${result.rows[0].id} and attempted email ${result.rows[0].pending_email}
+            Unauthorized email change reported for user ID ${user.id} and attempted email ${attemptedEmail}
             `
         );
 
-        return res.redirect(
-            "/settings/account-secured?attempted_email=" + result.rows[0].pending_email
-        );
+        return res.redirect(`/settings/account-secured?attempted_email=${attemptedEmail}`);
     } catch (err) {
         logger.error("Error reporting unauthorized email change:", err);
         return res.redirect("/auth/login?error=Server%20Error");
@@ -372,8 +377,9 @@ nodeCron.schedule(
     "0 2 * * *",
     async () => {
         try {
-            await pool.query(
-                "UPDATE user_account SET pending_email = NULL, email_verification_token = NULL, email_token_expiry = NULL WHERE email_token_expiry < NOW()"
+            await db.user_account.update(
+                { pending_email: null, email_verification_token: null, email_token_expiry: null },
+                { where: { email_token_expiry: { [Op.lt]: new Date() } } }
             );
         } catch (err) {
             logger.error("Error clearing expired email change tokens:", err);

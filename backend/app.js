@@ -1,5 +1,5 @@
 import express from "express";
-import pool from "./db.js";
+import db from "./db.js";
 import authRoutes from "./routes/auth.js";
 import emailRoutes from "./routes/reset.js";
 import adminRoutes from "./routes/admin.js";
@@ -8,21 +8,24 @@ import userRoutes from "./routes/user.js";
 import notificationRoutes from "./routes/notifications.js";
 import settingsRoutes from "./routes/settings.js";
 import session from "express-session";
-import pgSession from "connect-pg-simple";
-
+import SequelizeStoreConstructor from "connect-session-sequelize";
 import bodyParser from "body-parser";
 
 const app = express();
-const PostgresStore = pgSession(session);
+const SequelizeStore = SequelizeStoreConstructor(session.Store);
+const sessionStore = new SequelizeStore({
+    db: db.sequelize,
+    tableName: "session",
+    checkExpirationInterval: 15 * 60 * 1000,
+    expiration: 24 * 60 * 60 * 1000,
+});
+
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 app.use(
     session({
-        store: new PostgresStore({
-            pool: pool,
-            tableName: "session",
-        }),
+        store: sessionStore,
         secret: process.env.SESSION_SECRET,
         resave: false,
         saveUninitialized: false,
@@ -38,15 +41,11 @@ app.use(async (req, res, next) => {
     if (req.session && req.session.user_id) {
         try {
             // Fetch multiple updated fields from the DB
-            const result = await pool.query(
-                "SELECT role, user_name, team_id FROM user_account WHERE id = $1",
-                [req.session.user_id]
-            );
+            const user = await db.user_account.findByPk(req.session.user_id, {
+                attributes: ["role", "user_name", "team_id"],
+            });
 
-            if (result.rows.length > 0) {
-                const user = result.rows[0];
-
-                // Sync all relevant variables to the session
+            if (user) {
                 req.session.role = user.role;
                 req.session.user_name = user.user_name; // Syncs name changes
                 req.session.team_id = user.team_id; // Syncs team switches
@@ -84,7 +83,7 @@ app.use("/", userRoutes);
 
 app.get("/health", async (req, res) => {
     try {
-        await pool.query("SELECT 1");
+        await db.sequelize.authenticate();
         res.json({ status: "ok", db: "connected" });
     } catch (err) {
         res.status(500).json({ status: "error", db: "disconnected", details: err.message });

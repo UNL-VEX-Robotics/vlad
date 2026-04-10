@@ -1,14 +1,16 @@
-import pkg from "pg";
-const { Pool } = pkg;
-
+import { Sequelize } from "sequelize";
+import initModels from "../models/init-models.js";
 import "dotenv/config";
+import logger from "./utils/logger.js";
 
-const pool = new Pool({
-    host: process.env.DB_HOST,
-    port: process.env.DB_PORT,
-    database: process.env.DB_NAME,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
+const sequelize = new Sequelize(process.env.DEV_DATABASE_URL, {
+    dialect: "postgres",
+    logging: (sql, timing) => logger.info(sql, timing),
 });
 
-export default pool;
+const db = initModels(sequelize);
+db.sequelize = sequelize;
+db.Sequelize = Sequelize;
+
+export { sequelize };
+export default db;

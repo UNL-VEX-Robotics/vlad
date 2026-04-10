@@ -1,4 +1,4 @@
-import pool from "../db.js";
+import db from "../db.js";
 import { ROLES } from "../utils/constants.js";
 import logger from "../utils/logger.js";
 import { withLayout } from "../views/layout.js";
@@ -12,15 +12,20 @@ import { teamRequestsPage } from "../views/admin.view.js";
 export const renderTeamRequests = async (req, res) => {
     try {
         // Fetch users who are assigned to this team but still have role 0 (Pending)
-        const requests = await pool.query(
-            `SELECT u.id, u.user_name, u.email 
-             FROM user_account u 
-             JOIN team t ON u.team_id = t.id 
-             WHERE t.name = $1 AND u.role = 0`,
-            [req.session.team]
-        );
+        const users = await db.user_account.findAll({
+            attributes: ["id", "user_name", "email"],
+            where: { role: 0 },
+            include: [
+                {
+                    model: db.team,
+                    as: "team",
+                    where: { name: req.session.team },
+                    attributes: [],
+                },
+            ],
+        });
 
-        const content = teamRequestsPage(requests.rows);
+        const content = teamRequestsPage(users.map((u) => u.get({ plain: true })));
         res.send(withLayout("Team Requests", content, req));
     } catch (err) {
         logger.error("Error rendering team requests page:", err);
@@ -36,10 +41,7 @@ export const renderTeamRequests = async (req, res) => {
 export async function acceptUserRequest(req, res) {
     const { user_id } = req.body;
     try {
-        await pool.query(
-            "UPDATE user_account SET role = $1 WHERE id = $2 RETURNING id, user_name, email, role",
-            [ROLES.MEMBER, user_id]
-        );
+        await db.user_account.update({ role: ROLES.MEMBER }, { where: { id: user_id } });
 
         res.redirect("/admin/team-requests");
     } catch (err) {
@@ -57,21 +59,13 @@ export async function acceptUserRequest(req, res) {
 export async function rejectUserRequest(req, res) {
     const { user_id } = req.body;
     try {
-        await pool.query(
-            "UPDATE user_account SET team_id = NULL WHERE id = $1 RETURNING id, user_name, email, team_id",
-            [user_id]
-        );
-        await pool.query(
-            "INSERT INTO notifications (user_id, title, message, type, created_at) VALUES ($1, $2, $3, $4, NOW())",
-            [
-                user_id,
-                "Join Request Rejected: " + req.session.team,
-                "Your request to join " +
-                    req.session.team +
-                    " was rejected by the team lead. You can try joining a different team or contact your team lead for more information.",
-                "rejection",
-            ]
-        );
+        await db.user_account.update({ team_id: null }, { where: { id: user_id } });
+        await db.notifications.create({
+            user_id: user_id,
+            title: `Join Request Rejected: ${req.session.team}`,
+            message: `Your request to join ${req.session.team} was rejected by the team lead.`,
+            type: "rejection",
+        });
         res.redirect("/admin/team-requests");
     } catch (err) {
         logger.error("Error rejecting user request to join team:", err);
@@ -90,14 +84,16 @@ export async function removeUserFromTeam(req, res) {
         if (req.session.role < ROLES.OWNER) {
             return res.redirect("/dashboard?error=Insufficient%20Permissions");
         }
-        await pool.query("UPDATE user_account SET team_id = NULL, role = $1 WHERE id = $2", [
-            ROLES.PENDING,
-            user_id,
-        ]);
-        await pool.query(
-            "INSERT INTO notifications (user_id, title, message, type, created_at) VALUES ($1, $2, $3, $4, NOW())",
-            [user_id, "Removed from Team: " + req.session.team, reason, "removal"]
+        await db.user_account.update(
+            { team_id: null, role: ROLES.PENDING },
+            { where: { id: user_id } }
         );
+        await db.notifications.create({
+            user_id: user_id,
+            title: `Removed from Team: ${req.session.team}`,
+            message: reason,
+            type: "removal",
+        });
         return res.redirect("/dashboard");
     } catch (err) {
         logger.error("Error removing user from team:", {
@@ -124,15 +120,17 @@ export async function changeUserRole(req, res) {
             return res.redirect("/dashboard?error=Insufficient%20Permissions");
         }
 
-        const result = await pool.query(
-            "UPDATE user_account SET role = $1 WHERE id = $2 RETURNING id, user_name, email, role",
-            [new_role, user_id]
-        );
-        if (new_role === ROLES.OWNER && result.rows.length > 0) {
-            await pool.query(
-                `UPDATE team SET lead_id = $1 WHERE id = (SELECT team_id FROM user_account WHERE id = $1)
-                 UPDATE user_account SET role = $2 WHERE id = $3`,
-                [user_id, ROLES.ADMIN, req.session.user_id]
+        const user = await db.user_account.findByPk(user_id);
+        if (!user) {
+            return res.redirect("/dashboard?error=User%20not%20found");
+        }
+        await user.update({ role: new_role });
+        if (new_role === ROLES.OWNER) {
+            await db.team.update({ lead_id: user_id }, { where: { id: user.team_id } });
+
+            await db.user_account.update(
+                { role: ROLES.ADMIN },
+                { where: { id: req.session.user_id } }
             );
         }
         return res.redirect("/dashboard");

@@ -1,4 +1,4 @@
-import pool from "../db.js";
+import db from "../db.js";
 import { withLayout } from "../views/layout.js";
 import { dashboardPage, profilePage } from "../views/user.view.js";
 import { ROLES } from "../utils/constants.js";
@@ -13,58 +13,55 @@ export const renderDashboard = async (req, res) => {
     try {
         const userId = req.session.user_id;
 
-        // 0. Sync Session with DB
         // Fetch the latest team and role directly from the account table
-        const userSync = await pool.query("SELECT team_id, role FROM user_account WHERE id = $1", [
-            userId,
-        ]);
+        const user = await db.user_account.findByPk(userId, {
+            include: [
+                {
+                    model: db.notifications,
+                    as: "notifications",
+                    where: { is_read: false },
+                    required: false,
+                },
+            ],
+        });
 
-        if (userSync.rows.length > 0) {
-            const { team_id, role } = userSync.rows[0];
-            req.session.team_id = team_id;
-            req.session.role = role;
-        }
+        if (!user) return res.redirect("/auth/login");
 
-        if (req.session.team_id === null) {
+        req.session.team_id = user.team_id;
+        req.session.role = user.role;
+        if (user.team_id === null) {
             req.session.team = null;
         }
 
-        // Now use the freshly updated session values
-        const teamId = req.session.team_id;
-
-        // 1. Fetch Notifications
-        const notifs = await pool.query(
-            "SELECT * FROM notifications WHERE user_id = $1 AND is_read = FALSE",
-            [userId]
-        );
-
-        // 2. Fetch Members (only if they have a team)
+        const teamId = user.team_id;
         let members = [];
-        if (teamId) {
-            const memberRes = await pool.query(
-                "SELECT id, user_name, role FROM user_account WHERE team_id = $1 ORDER BY role DESC",
-                [teamId]
-            );
-            members = memberRes.rows;
-        }
-
-        // 3. Fetch Subteams
         let subteams = [];
+
         if (teamId) {
-            const subRes = await pool.query("SELECT * FROM subteam WHERE team_id = $1", [teamId]);
-            subteams = subRes.rows;
+            // Fetch members
+            members = await db.user_account.findAll({
+                where: { team_id: teamId },
+                attributes: ["id", "user_name", "role"],
+                order: [["role", "DESC"]],
+            });
+
+            // Fetch subteams
+            subteams = await db.subteam.findAll({
+                where: { team_id: teamId },
+            });
         }
 
         const pageData = {
             user: req.session,
-            notifications: notifs.rows,
-            members,
-            subteams,
+            notifications: user.notifications || [],
+            members: members.map((m) => m.get({ plain: true })),
+            subteams: subteams.map((s) => s.get({ plain: true })),
             error: req.query.error,
         };
+
         res.send(withLayout("Dashboard", dashboardPage(pageData), req));
     } catch (err) {
-        logger.error("Error rendering dashboard:", err);
+        logger.error(`Error rendering dashboard: ${err}`);
         return res.status(500).json({ error: "Failed to load dashboard", details: err.message });
     }
 };
@@ -79,25 +76,31 @@ export const renderProfile = async (req, res) => {
     const targetUserId = req.query.user_id;
 
     try {
-        const userResult = await pool.query(
-            `SELECT u.id, u.user_name, u.email, u.role, t.name as team_name 
-             FROM user_account u 
-             LEFT JOIN team t ON u.team_id = t.id 
-             WHERE u.id = $1`,
-            [targetUserId]
-        );
+        const user = await db.user_account.findByPk(targetUserId, {
+            include: [
+                {
+                    model: db.team,
+                    as: "team",
+                    attributes: ["name"],
+                },
+            ],
+        });
 
-        if (userResult.rows.length === 0) {
+        if (!user) {
             return res.status(404).send("User not found");
         }
 
-        const user = userResult.rows[0];
+        const userData = {
+            ...user.get({ plain: true }),
+            team_name: user.team?.name || null,
+        };
+
         const sessionUser = {
             id: req.session.user_id,
             role: req.session.role,
         };
 
-        const content = profilePage(user, sessionUser, error, ROLES);
+        const content = profilePage(userData, sessionUser, error, ROLES);
         res.send(withLayout(`${user.user_name}'s Profile`, content, req));
     } catch (err) {
         logger.error("Error rendering profile page:", err);

@@ -1,1 +1,0 @@
-ALTER TABLE user_account ADD COLUMN require_password_reset BOOLEAN DEFAULT FALSE;

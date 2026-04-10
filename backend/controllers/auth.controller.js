@@ -1,10 +1,11 @@
 import bcrypt from "bcrypt";
-import pool from "../db.js";
+import db from "../db.js";
 import nodeCron from "node-cron";
 import { withLayout } from "../views/layout.js";
 import { signupPage, loginPage, createTeamPage, joinTeamPage } from "../views/auth.view.js";
 import { ROLES, EMAIL_REGEX, SALT_ROUNDS, PASSWORD_REGEX } from "../utils/constants.js";
 import logger from "../utils/logger.js";
+import { Op } from "sequelize";
 
 //TODO: Set up 2fa for users who want it. The only part currently implemented is the database and settings page with the yes or no toggle option
 // but the actual generation of everything else needed for 2fa needs to be implemented. Start with just email based and possibly move
@@ -82,27 +83,23 @@ export async function signup(req, res) {
     }
 
     try {
-        const existingUser = await pool.query("SELECT id FROM user_account WHERE email = $1", [
-            clean_email,
-        ]);
-        if (existingUser.rows.length > 0) {
+        const existingUser = await db.user_account.findOne({ where: { email: clean_email } });
+        if (existingUser) {
             return res.redirect("/auth/signup?error=User%20Already%20Exists");
         }
 
         const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
 
-        const result = await pool.query(
-            `
-      INSERT INTO user_account (user_name, email, password_hash, team_id, role)
-      VALUES ($1, $2, $3, NULL, $4)
-      RETURNING id, user_name, email, role
-      `,
-            [user_name, clean_email, passwordHash, ROLES.PENDING]
-        );
-        req.session.user_id = result.rows[0].id;
-        req.session.user_name = result.rows[0].user_name;
-        req.session.email = result.rows[0].email;
-        req.session.role = result.rows[0].role;
+        const newUser = await db.user_account.create({
+            user_name,
+            email: clean_email,
+            password_hash: passwordHash,
+            role: ROLES.PENDING,
+        });
+        req.session.user_id = newUser.id;
+        req.session.user_name = newUser.user_name;
+        req.session.email = newUser.email;
+        req.session.role = newUser.role;
         req.session.team = null;
         req.session.team_id = null;
         req.session.theme = "system";
@@ -136,37 +133,37 @@ export async function login(req, res) {
     }
 
     try {
-        const userResult = await pool.query(
-            "SELECT id, user_name, password_hash, team_id, email, role, require_password_reset FROM user_account WHERE email = $1",
-            [clean_email]
-        );
+        const user = await db.user_account.findOne({
+            where: { email: clean_email },
+            include: [
+                {
+                    model: db.team,
+                    as: "team",
+                    attributes: ["name"],
+                },
+            ],
+        });
 
-        const user_settings = await pool.query(
-            "SELECT theme, two_factor_enabled FROM user_settings WHERE user_id = $1",
-            [userResult.rows[0].id]
-        );
+        if (!user) {
+            return res.redirect("/auth/login?error=Invalid%20Credentials");
+        }
 
-        const user = userResult.rows[0];
+        const user_settings = await db.user_settings.findOne({
+            where: { user_id: user.id },
+        });
 
         if (!user) {
             return res.redirect("/auth/login?error=Invalid%20Credentials");
         }
         const isMatch = await bcrypt.compare(password, user.password_hash);
         if (isMatch && !user.require_password_reset) {
-            req.session.team = null;
+            req.session.team = user.team?.name || null;
             req.session.role = user.role;
             req.session.team_id = user.team_id;
             req.session.email = user.email;
-            req.session.theme = user_settings.rows[0].theme || "system";
+            req.session.theme = user_settings.theme || "system";
             req.session.user_name = user.user_name;
             req.session.user_id = user.id;
-
-            if (user.team_id !== null) {
-                const team = await pool.query("SELECT name, lead_id FROM team WHERE id = $1", [
-                    user.team_id,
-                ]);
-                req.session.team = team.rows[0].name;
-            }
             req.session.save((err) => {
                 if (err) {
                     logger.error("Error saving session after login:", err);
@@ -209,7 +206,6 @@ export async function logout(req, res) {
  * @param {Object} res - Express response object.
  */
 export async function createTeam(req, res) {
-    const client = await pool.connect();
     const { team_name } = req.body;
     const user_id = req.session.user_id;
 
@@ -218,28 +214,29 @@ export async function createTeam(req, res) {
     }
 
     try {
-        const teamResult = await pool.query("SELECT id FROM team WHERE name = $1", [team_name]);
-        if (teamResult.rows.length > 0) {
+        const existingTeam = await db.team.findOne({ where: { name: team_name } });
+        if (existingTeam) {
             return res.redirect("/auth/create-team?error=Team%20Already%20Exists");
         }
 
-        await client.query("BEGIN");
+        await db.sequelize.transaction(async (t) => {
+            const newTeam = await db.team.create(
+                {
+                    name: team_name,
+                    lead_id: user_id,
+                },
+                { transaction: t }
+            );
 
-        const result = await client.query(
-            "INSERT INTO team (name, lead_id) VALUES ($1, $2) RETURNING id, name, lead_id",
-            [team_name, user_id]
-        );
+            await db.user_account.update(
+                { team_id: newTeam.id, role: ROLES.OWNER },
+                { where: { id: user_id }, transaction: t }
+            );
 
-        await client.query("UPDATE user_account SET team_id = $1, role = $2 WHERE id = $3", [
-            result.rows[0].id,
-            ROLES.OWNER,
-            user_id,
-        ]);
-
-        await client.query("COMMIT");
+            req.session.team_id = newTeam.id;
+        });
 
         req.session.team = team_name;
-        req.session.team_id = result.rows[0].id;
         req.session.role = ROLES.OWNER;
         req.session.save((err) => {
             if (err) {
@@ -249,11 +246,8 @@ export async function createTeam(req, res) {
             res.redirect("/dashboard");
         });
     } catch (err) {
-        await client.query("ROLLBACK");
         logger.error("Error during team creation:", err);
         return res.redirect("/auth/create-team?error=Server%20Error");
-    } finally {
-        client.release();
     }
 }
 
@@ -272,14 +266,13 @@ export async function teamRequest(req, res) {
     }
 
     try {
-        const teamResult = await pool.query("SELECT id FROM team WHERE name = $1", [team_name]);
-        if (teamResult.rows.length === 0) {
+        const team = await db.team.findOne({ where: { name: team_name } });
+        if (!team) {
             return res.redirect("/auth/join-team?error=Team%20Not%20Found");
         }
-        const team_id = teamResult.rows[0].id;
-        await pool.query("UPDATE user_account SET team_id = $1 WHERE id = $2", [team_id, user_id]);
+        await db.user_account.update({ team_id: team.id }, { where: { id: user_id } });
         req.session.team = team_name;
-        req.session.team_id = team_id;
+        req.session.team_id = team.id;
         req.session.save((err) => {
             if (err) {
                 logger.error("Error saving session after team join request:", err);
@@ -300,7 +293,14 @@ nodeCron.schedule(
     "0 3 * * *",
     async () => {
         try {
-            await pool.query("DELETE FROM session WHERE expire < NOW()");
+            await db.session.destroy({
+                where: {
+                    expire: {
+                        [Op.lt]: new Date(),
+                    },
+                },
+            });
+            logger.info("Expired sessions cleared successfully.");
         } catch (err) {
             logger.error("Error clearing expired sessions:", err);
         }
