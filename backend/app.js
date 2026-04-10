@@ -31,7 +31,7 @@ app.use(
     })
 );
 app.use(compression());
-app.use(morgan('dev'));
+app.use(morgan("dev"));
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(hpp());
