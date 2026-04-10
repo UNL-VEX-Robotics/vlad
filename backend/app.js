@@ -21,10 +21,11 @@ const sessionStore = new SequelizeStore({
     expiration: 24 * 60 * 60 * 1000,
 });
 
+// TODO: Change to event listener so that the helmet contentSecurityPolicy can be turned to truw
 app.use(
-  helmet({
-    contentSecurityPolicy: false,
-  })
+    helmet({
+        contentSecurityPolicy: false,
+    })
 );
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));

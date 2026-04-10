@@ -28,7 +28,7 @@ const shutdown = async () => {
             logger.info("Database connection closed");
         }
 
-        server.close(() =>  {
+        server.close(() => {
             logger.info("HTTP server closed");
             process.exit(0);
         });
@@ -36,8 +36,8 @@ const shutdown = async () => {
         logger.error(`Error shutting down: ${err}`);
         process.exit(1);
     }
-}
+};
 
 startServer();
-process.on('SIGINT', shutdown);
-process.on('SIGTERM', shutdown);
+process.on("SIGINT", shutdown);
+process.on("SIGTERM", shutdown);
