@@ -1,6 +1,6 @@
 {
     "name": "vlad",
-    "version": "0.5.0-alpha.1",
+    "version": "0.6.0-alpha",
     "description": "",
     "main": "index.js",
     "directories": {
@@ -33,6 +33,7 @@
         "dotenv": "^17.3.1",
         "express": "^5.2.1",
         "express-session": "^1.19.0",
+        "helmet": "^8.1.0",
         "node-cron": "^4.2.1",
         "nodemailer": "^8.0.5",
         "pg": "^8.17.2",

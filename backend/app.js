@@ -1,4 +1,5 @@
 import express from "express";
+import helmet from "helmet";
 import db from "./db.js";
 import authRoutes from "./routes/auth.js";
 import emailRoutes from "./routes/reset.js";
@@ -20,6 +21,11 @@ const sessionStore = new SequelizeStore({
     expiration: 24 * 60 * 60 * 1000,
 });
 
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+  })
+);
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
