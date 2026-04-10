@@ -37,7 +37,7 @@ export const renderSettings = async (req, res) => {
 
         res.send(withLayout("Settings", settingsPage(pageData), req));
     } catch (err) {
-        logger.error("Error rendering settings page:", err);
+        logger.error(`Error rendering settings page: ${err}`);
     }
 };
 
@@ -92,7 +92,7 @@ export const renderFinalizeEmailChangePage = async (req, res) => {
             )
         );
     } catch (err) {
-        logger.error("Error rendering finalize email change page:", err);
+        logger.error(`Error rendering finalize email change page: ${err}`);
     }
 };
 
@@ -156,7 +156,7 @@ export async function updateSettings(req, res) {
         req.session.theme = theme;
         return res.redirect("/settings?success=Settings%20updated");
     } catch (err) {
-        logger.error("Error updating settings:", err);
+        logger.error(`Error updating settings: ${err}`);
         return res.redirect("/settings?error=Server%20Error");
     }
 }
@@ -235,7 +235,7 @@ export async function sendVerificationEmail(req, res) {
         });
         return res.redirect("/settings/verify-email");
     } catch (err) {
-        logger.error("Error sending email change verification:", err);
+        logger.error(`Error sending email change verification: ${err}`);
         return res.redirect("/settings/change-email?error=Server%20Error");
     }
 }
@@ -303,7 +303,7 @@ export async function finalizeEmailChange(req, res) {
             return res.redirect("/settings/email-update-success");
         });
     } catch (err) {
-        logger.error("Error finalizing email change:", err);
+        logger.error(`Error finalizing email change: ${err}`);
         return res.redirect("/settings/change-email?error=Server%20Error");
     }
 }
@@ -365,7 +365,7 @@ export async function reportUnauthorizedEmailChange(req, res) {
 
         return res.redirect(`/settings/account-secured?attempted_email=${attemptedEmail}`);
     } catch (err) {
-        logger.error("Error reporting unauthorized email change:", err);
+        logger.error(`Error reporting unauthorized email change: ${err}`);
         return res.redirect("/auth/login?error=Server%20Error");
     }
 }
@@ -382,7 +382,7 @@ nodeCron.schedule(
                 { where: { email_token_expiry: { [Op.lt]: new Date() } } }
             );
         } catch (err) {
-            logger.error("Error clearing expired email change tokens:", err);
+            logger.error(`Error clearing expired email change tokens: ${err}`);
         }
     },
     {

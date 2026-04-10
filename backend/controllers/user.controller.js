@@ -103,7 +103,7 @@ export const renderProfile = async (req, res) => {
         const content = profilePage(userData, sessionUser, error, ROLES);
         res.send(withLayout(`${user.user_name}'s Profile`, content, req));
     } catch (err) {
-        logger.error("Error rendering profile page:", err);
+        logger.error(`Error rendering profile page: ${err}`);
         res.status(500).json({ error: "Failed to load profile", details: err.message });
     }
 };

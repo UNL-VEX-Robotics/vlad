@@ -51,7 +51,7 @@ export async function createSubteam(req, res) {
 
         return res.redirect("/dashboard");
     } catch (err) {
-        logger.error("Error creating subteam:", err);
+        logger.error(`Error creating subteam: ${err}`);
         return res.redirect("/subteam/create-subteam?error=Server%20Error");
     }
 }
@@ -72,7 +72,7 @@ export async function deleteSubteam(req, res) {
         });
         return res.redirect("/dashboard");
     } catch (err) {
-        logger.error("Error deleting subteam:", err);
+        logger.error(`Error deleting subteam: ${err}`);
         return res.redirect("/dashboard?error=Server%20Error");
     }
 }
@@ -108,7 +108,7 @@ export async function editSubteam(req, res) {
         await db.subteam.update({ name: newSubteamName }, { where: { id: subteamID } });
         return res.redirect("/dashboard");
     } catch (err) {
-        logger.error("Error editing subteam:", err);
+        logger.error(`Error editing subteam: ${err}`);
         return res.redirect(`/edit-subteam?id=${subteamID}&error=Server%20Error`);
     }
 }

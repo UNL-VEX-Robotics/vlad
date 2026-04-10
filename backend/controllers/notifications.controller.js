@@ -30,7 +30,7 @@ export const renderNotifications = async (req, res) => {
         const content = notificationsPage(notifications.map((n) => n.get({ plain: true })));
         res.send(withLayout("Notification Hub", content, req));
     } catch (err) {
-        logger.error("Error rendering notifications page:", err);
+        logger.error(`Error rendering notifications page: ${err}`);
         return res.redirect("/dashboard?error=Server%20Error");
     }
 };
@@ -50,7 +50,7 @@ nodeCron.schedule(
                 },
             });
         } catch (err) {
-            logger.error("Error clearing old notifications:", err);
+            logger.error(`Error clearing old notifications: ${err}`);
         }
     },
     {
@@ -71,7 +71,7 @@ export async function markAsRead(req, res) {
         const referer = req.get("Referer") || "/dashboard";
         return res.redirect(referer);
     } catch (err) {
-        logger.error("Error marking notification as read:", err);
+        logger.error(`Error marking notification as read: ${err}`);
         return res.redirect("/notifications?error=Server%20Error");
     }
 }
@@ -90,7 +90,7 @@ export async function markAllAsRead(req, res) {
         const referer = req.get("Referer") || "/dashboard";
         return res.redirect(referer);
     } catch (err) {
-        logger.error("Error marking all notifications as read:", err);
+        logger.error(`Error marking all notifications as read: ${err}`);
         return res.redirect("/notifications?error=Server%20Error");
     }
 }
@@ -108,7 +108,7 @@ export async function deleteNotifications(req, res) {
         });
         return res.redirect("/notifications");
     } catch (err) {
-        logger.error("Error deleting notifications:", err);
+        logger.error(`Error deleting notifications: ${err}`);
         return res.redirect("/notifications?error=Server%20Error");
     }
 }
@@ -125,7 +125,7 @@ export async function deleteAllNotifications(req, res) {
         });
         return res.redirect("/notifications/hub");
     } catch (err) {
-        logger.error("Error deleting all notifications:", err);
+        logger.error(`Error deleting all notifications: ${err}`);
         return res.redirect("/notifications/hub?error=Server%20Error");
     }
 }

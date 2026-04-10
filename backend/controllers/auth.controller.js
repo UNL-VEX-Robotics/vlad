@@ -103,13 +103,13 @@ export async function signup(req, res) {
         req.session.theme = "system";
         req.session.save((err) => {
             if (err) {
-                logger.error("Error saving session after signup:", err);
+                logger.error(`Error saving session after signup:${err}`);
                 return res.redirect("/auth/signup?error=Server%20Error");
             }
             res.redirect("/dashboard");
         });
     } catch (err) {
-        logger.error("Error during user signup:", err);
+        logger.error(`Error during user signup:${err}`);
         return res.redirect("/auth/signup?error=Server%20Error");
     }
 }
@@ -164,7 +164,7 @@ export async function login(req, res) {
             req.session.user_id = user.id;
             req.session.save((err) => {
                 if (err) {
-                    logger.error("Error saving session after login:", err);
+                    logger.error(`Error saving session after login:${err}`);
                     return res.redirect("/auth/login?error=Server%20Error");
                 }
                 res.redirect("/dashboard");
@@ -175,7 +175,7 @@ export async function login(req, res) {
             return res.redirect("/auth/login?error=Invalid%20Credentials");
         }
     } catch (err) {
-        logger.error("Error during user login:", err);
+        logger.error(`Error during user login: ${err}`);
         return res.redirect("/auth/login?error=Server%20Error");
     }
 }
@@ -188,7 +188,7 @@ export async function login(req, res) {
 export async function logout(req, res) {
     await req.session.destroy((err) => {
         if (err) {
-            logger.error("Error destroying session during logout:", err);
+            logger.error(`Error destroying session during logout: ${err}`);
             return res.redirect("/dashboard?error=Server%20Error");
         }
         res.clearCookie("connect.sid");
@@ -238,13 +238,13 @@ export async function createTeam(req, res) {
         req.session.role = ROLES.OWNER;
         req.session.save((err) => {
             if (err) {
-                logger.error("Error saving session after team creation:", err);
+                logger.error(`Error saving session after team creation: ${err}`);
                 return res.redirect("/auth/create-team?error=Server%20Error");
             }
             res.redirect("/dashboard");
         });
     } catch (err) {
-        logger.error("Error during team creation:", err);
+        logger.error(`Error during team creation: ${err}`);
         return res.redirect("/auth/create-team?error=Server%20Error");
     }
 }
@@ -273,13 +273,13 @@ export async function teamRequest(req, res) {
         req.session.team_id = team.id;
         req.session.save((err) => {
             if (err) {
-                logger.error("Error saving session after team join request:", err);
+                logger.error(`Error saving session after team join request: ${err}`);
                 return res.redirect("/auth/join-team?error=Server%20Error");
             }
             res.redirect("/dashboard");
         });
     } catch (err) {
-        logger.error("Error during team join request:", err);
+        logger.error(`Error during team join request: ${err}`);
         return res.redirect("/auth/join-team?error=Server%20Error");
     }
 }

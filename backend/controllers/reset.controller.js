@@ -80,7 +80,7 @@ nodeCron.schedule(
                 }
             );
         } catch (err) {
-            logger.error("Error clearing expired reset tokens:", err);
+            logger.error(`Error clearing expired reset tokens: ${err}`);
         }
     },
     {
@@ -167,7 +167,7 @@ export async function sendResetPasswordEmail(req, res) {
         await TRANSPORTER.sendMail(mailOptions);
         res.redirect("/reset/email-sent");
     } catch (err) {
-        logger.error("Error sending password reset email:", err);
+        logger.error(`Error sending password reset email: ${err}`);
         return res.redirect("/reset/forgot-password?error=Server%20Error");
     }
 }
@@ -219,7 +219,7 @@ export async function resetPassword(req, res) {
 
         res.redirect("/reset/reset-confirmation");
     } catch (err) {
-        logger.error("Error resetting password:", err);
+        logger.error(`Error resetting password: ${err}`);
         return res.redirect("/reset-password?error=Server%20Error");
     }
 }
