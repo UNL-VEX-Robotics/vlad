@@ -1,5 +1,7 @@
 # Environment Variables
 *.env
+.vscode/
+*.log
 
 # Node Modules
 node_modules/
