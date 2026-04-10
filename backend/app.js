@@ -16,7 +16,7 @@ const SequelizeStore = SequelizeStoreConstructor(session.Store);
 const sessionStore = new SequelizeStore({
     db: db.sequelize,
     tableName: "session",
-    checkExpirationInterval: 15 * 60 * 1000,
+    checkExpirationInterval: 60 * 60 * 1000,
     expiration: 24 * 60 * 60 * 1000,
 });
 

@@ -1,11 +1,9 @@
 import bcrypt from "bcrypt";
 import db from "../db.js";
-import nodeCron from "node-cron";
 import { withLayout } from "../views/layout.js";
 import { signupPage, loginPage, createTeamPage, joinTeamPage } from "../views/auth.view.js";
 import { ROLES, EMAIL_REGEX, SALT_ROUNDS, PASSWORD_REGEX } from "../utils/constants.js";
 import logger from "../utils/logger.js";
-import { Op } from "sequelize";
 
 //TODO: Set up 2fa for users who want it. The only part currently implemented is the database and settings page with the yes or no toggle option
 // but the actual generation of everything else needed for 2fa needs to be implemented. Start with just email based and possibly move
@@ -285,28 +283,3 @@ export async function teamRequest(req, res) {
         return res.redirect("/auth/join-team?error=Server%20Error");
     }
 }
-
-/**
- * Deletes all expired sessions from the database. Scheduled to run dailty at 3:00 AM Central Time using node-cron.
- */
-nodeCron.schedule(
-    "0 3 * * *",
-    async () => {
-        try {
-            await db.session.destroy({
-                where: {
-                    expire: {
-                        [Op.lt]: new Date(),
-                    },
-                },
-            });
-            logger.info("Expired sessions cleared successfully.");
-        } catch (err) {
-            logger.error("Error clearing expired sessions:", err);
-        }
-    },
-    {
-        scheduled: true,
-        timezone: "America/Chicago",
-    }
-);
