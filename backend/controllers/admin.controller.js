@@ -96,7 +96,9 @@ export async function removeUserFromTeam(req, res) {
         });
         return res.redirect("/dashboard");
     } catch (err) {
-        logger.error(`Error removing user from team: Error: ${err}\nUser: ${user_id}\nTeam: ${req.session.team}\nReason: ${reason}`);
+        logger.error(
+            `Error removing user from team: Error: ${err}\nUser: ${user_id}\nTeam: ${req.session.team}\nReason: ${reason}`
+        );
         return res.redirect("/dashboard?error=System%20Error");
     }
 }
