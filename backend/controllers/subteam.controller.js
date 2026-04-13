@@ -1,7 +1,13 @@
-import pool from "../db.js";
+import db from "../db.js";
 import { withLayout } from "../views/layout.js";
 import { createSubteamPage } from "../views/subteam.view.js";
+import logger from "../utils/logger.js";
 
+/**
+ * Renders the create subteam page.
+ * @param {Object} req - Express request object.
+ * @param {Object} res - Express response object.
+ */
 export const renderCreateSubteam = (req, res) => {
     const error = req.query.error;
     const primaryTeam = req.session.team;
@@ -26,25 +32,26 @@ export async function createSubteam(req, res) {
     }
 
     try {
-        const existingSubteam = await pool.query(
-            "SELECT id FROM subteam WHERE team_id = $1 AND name = $2",
-            [req.session.team_id, subteamName]
-        );
+        const existingSubteam = await db.subteam.findOne({
+            where: {
+                team_id: req.session.team_id,
+                name: subteamName,
+            },
+        });
 
-        if (existingSubteam.rows.length > 0) {
+        if (existingSubteam) {
             return res.redirect("/subteam/create-subteam?error=Subteam%20already%20exists");
         }
 
-        await pool.query(
-            `
-            INSERT INTO subteam (name, team_id, lead_id)
-            VALUES ($1, $2, $3)
-            RETURNING id, name
-            `,
-            [subteamName, req.session.team_id, req.session.user_id]
-        );
+        await db.subteam.create({
+            name: subteamName,
+            team_id: req.session.team_id,
+            lead_id: req.session.user_id,
+        });
+
         return res.redirect("/dashboard");
-    } catch {
+    } catch (err) {
+        logger.error(`Error creating subteam: ${err}`);
         return res.redirect("/subteam/create-subteam?error=Server%20Error");
     }
 }
@@ -60,9 +67,12 @@ export async function deleteSubteam(req, res) {
     const subteamID = req.body.id;
 
     try {
-        await pool.query("DELETE FROM subteam WHERE id = $1", [subteamID]);
+        await db.subteam.destroy({
+            where: { id: subteamID },
+        });
         return res.redirect("/dashboard");
-    } catch {
+    } catch (err) {
+        logger.error(`Error deleting subteam: ${err}`);
         return res.redirect("/dashboard?error=Server%20Error");
     }
 }
@@ -83,19 +93,22 @@ export async function editSubteam(req, res) {
     }
 
     try {
-        const existingSubteam = await pool.query(
-            "SELECT id FROM subteam WHERE team_id = $1 AND name = $2",
-            [req.session.team_id, newSubteamName]
-        );
-        if (existingSubteam.rows.length > 0) {
+        const collision = await db.subteam.findOne({
+            where: {
+                team_id: req.session.team_id,
+                name: newSubteamName,
+            },
+        });
+        if (collision) {
             return res.redirect(
                 `/edit-subteam?id=${subteamID}&error=Subteam%20name%20already%20exists`
             );
         }
 
-        await pool.query("UPDATE subteam SET name = $1 WHERE id = $2", [newSubteamName, subteamID]);
+        await db.subteam.update({ name: newSubteamName }, { where: { id: subteamID } });
         return res.redirect("/dashboard");
-    } catch {
+    } catch (err) {
+        logger.error(`Error editing subteam: ${err}`);
         return res.redirect(`/edit-subteam?id=${subteamID}&error=Server%20Error`);
     }
 }

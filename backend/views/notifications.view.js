@@ -13,7 +13,7 @@ export const notificationsPage = (notifications) => {
                 <div>
                     <h4 class="notif-title">${n.title}</h4>
                     <span class="notif-timestamp">
-                        ${new Date(n.created_at).toLocaleString()}
+                        ${new Date(n.createdAt).toLocaleString()}
                     </span>
                 </div>
                 <form action="/notifications/delete" method="POST" style="margin:0;">
@@ -45,43 +45,44 @@ export const notificationsPage = (notifications) => {
 
     return `
         <style>
-            .hub-header { text-align: center; margin-bottom: 30px; }
-            .unread { border-left: 4px solid var(--accent-red) !important; }
-            .read { opacity: 0.7; }
-            
-            .notif-card {
-                background: var(--bg-card);
-                border: 1px solid var(--border-color);
-                padding: 18px;
-                border-radius: 8px;
-                margin-bottom: 15px;
-                position: relative;
-                transition: transform 0.2s;
-            }
+    .hub-header { text-align: center; margin-bottom: 30px; }
+    .unread { border-left: 4px solid var(--accent-red) !important; }
+    .read { opacity: 0.6; } /* Slightly lower opacity for read state */
+    
+    .notif-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        padding: 18px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        position: relative;
+        transition: transform 0.2s;
+    }
 
-            .notif-header { display: flex; justify-content: space-between; align-items: flex-start; }
-            .notif-title { margin: 0; color: var(--text-heading); font-size: 1.05rem; }
-            .notif-timestamp { font-size: 0.75rem; color: var(--text-muted); }
-            .notif-message { margin: 12px 0 0 0; font-size: 0.95rem; color: #ffffff; line-height: 1.5; }
-            
-            .delete-notif-btn { background:none; border:none; color:var(--text-muted); cursor:pointer; font-size: 1.2rem; padding:0 5px; }
-            .mark-read-btn { background:none; border:none; color:var(--accent-red); font-size: 0.75rem; font-weight:bold; cursor:pointer; text-transform:uppercase; padding:0; }
+    .notif-header { display: flex; justify-content: space-between; align-items: flex-start; }
+    .notif-title { margin: 0; color: var(--text-heading); font-size: 1.05rem; font-weight: 700; }
+    .notif-timestamp { font-size: 0.75rem; color: var(--text-muted); }
 
-            .global-actions { display: flex; justify-content: center; gap: 20px; margin-bottom: 25px; }
-            .action-btn-reverted {
-                background: none; border: none; color: var(--accent-red);
-                font-size: 0.7rem; font-weight: bold; cursor: pointer;
-                text-transform: uppercase; letter-spacing: 0.05rem;
-            }
-            
-            .info-banner {
-                background: rgba(255, 255, 255, 0.05);
-                border: 1px dashed var(--border-color);
-                padding: 10px; border-radius: 6px;
-                text-align: center; font-size: 0.8rem;
-                color: var(--text-muted); margin-bottom: 30px;
-            }
-        </style>
+    .notif-message { margin: 12px 0 0 0; font-size: 0.95rem; color: var(--text-main); line-height: 1.5; }
+    
+    .delete-notif-btn { background:none; border:none; color:var(--text-muted); cursor:pointer; font-size: 1.2rem; padding:0 5px; }
+    .mark-read-btn { background:none; border:none; color:var(--accent-red); font-size: 0.75rem; font-weight:bold; cursor:pointer; text-transform:uppercase; padding:0; }
+
+    .global-actions { display: flex; justify-content: center; gap: 20px; margin-bottom: 25px; }
+    .action-btn-reverted {
+        background: none; border: none; color: var(--accent-red);
+        font-size: 0.7rem; font-weight: bold; cursor: pointer;
+        text-transform: uppercase; letter-spacing: 0.05rem;
+    }
+    
+    .info-banner {
+        background: var(--btn-secondary-bg);
+        border: 1px dashed var(--border-color);
+        padding: 10px; border-radius: 6px;
+        text-align: center; font-size: 0.8rem;
+        color: var(--text-muted); margin-bottom: 30px;
+    }
+</style>
 
         <div class="container" style="max-width: 650px; margin: 20px auto; padding: 0 20px;">
             <div class="hub-header">

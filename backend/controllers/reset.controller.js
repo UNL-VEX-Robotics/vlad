@@ -1,9 +1,11 @@
-import pool from "../db.js";
+import db from "../db.js";
 import crypto from "crypto";
 import bcrypt from "bcrypt";
 import nodeCron from "node-cron";
 import { TRANSPORTER, SALT_ROUNDS, EMAIL_REGEX, PASSWORD_REGEX } from "../utils/constants.js";
+import logger from "../utils/logger.js";
 import { withLayout } from "../views/layout.js";
+import { Op } from "sequelize";
 import {
     forgotPasswordPage,
     emailSentPage,
@@ -69,11 +71,16 @@ nodeCron.schedule(
     "0 2 * * *",
     async () => {
         try {
-            await pool.query(
-                "UPDATE user_account SET reset_token = NULL, reset_expiry = NULL WHERE reset_expiry < NOW()"
+            await db.user_account.update(
+                { reset_token: null, reset_expiry: null },
+                {
+                    where: {
+                        reset_expiry: { [Op.lt]: new Date() },
+                    },
+                }
             );
         } catch (err) {
-            console.error("Error clearing expired reset tokens:", err);
+            logger.error(`Error clearing expired reset tokens: ${err}`);
         }
     },
     {
@@ -103,20 +110,21 @@ export async function sendResetPasswordEmail(req, res) {
             return res.redirect("/reset/email-sent");
         }
 
-        const results = await pool.query("SELECT id FROM user_account WHERE email = $1", [
-            clean_email,
-        ]);
+        const user = await db.user_account.findOne({
+            where: { email: clean_email },
+            attributes: ["id"],
+        });
 
-        if (!results.rows[0]) {
+        if (!user) {
             return res.redirect("/reset/email-sent");
         }
 
         const hashedToken = crypto.createHash("sha256").update(resetToken).digest("hex");
 
-        await pool.query(
-            "UPDATE user_account SET reset_token = $1, reset_expiry = $2 WHERE email = $3",
-            [hashedToken, expires, clean_email]
-        );
+        await user.update({
+            reset_token: hashedToken,
+            reset_expiry: expires,
+        });
 
         const host = req.get("host");
         const protocol = req.protocol;
@@ -158,7 +166,8 @@ export async function sendResetPasswordEmail(req, res) {
 
         await TRANSPORTER.sendMail(mailOptions);
         res.redirect("/reset/email-sent");
-    } catch {
+    } catch (err) {
+        logger.error(`Error sending password reset email: ${err}`);
         return res.redirect("/reset/forgot-password?error=Server%20Error");
     }
 }
@@ -176,44 +185,41 @@ export async function sendResetPasswordEmail(req, res) {
 export async function resetPassword(req, res) {
     const { token, newPassword, confirmPassword } = req.body;
 
-    if (newPassword !== confirmPassword) {
+    if (
+        newPassword !== confirmPassword ||
+        newPassword.length < 8 ||
+        !PASSWORD_REGEX.test(newPassword)
+    ) {
+        const errorMsg = "Validation failed";
         return res.redirect(
-            `/reset/reset-password?token=${token}&error=Passwords%20do%20not%20match`
-        );
-    }
-
-    if (newPassword.length < 8) {
-        return res.redirect(
-            `/reset/reset-password?token=${token}&error=Password%20must%20be%20at%20least%208%20characters`
-        );
-    }
-
-    if (!PASSWORD_REGEX.test(newPassword)) {
-        return res.redirect(
-            `/reset/reset-password?token=${token}&error=Password%20does%20not%20requirements`
+            `/reset/reset-password?token=${token}&error=${encodeURIComponent(errorMsg)}`
         );
     }
 
     const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
     try {
-        const user = await pool.query(
-            "SELECT * FROM user_account WHERE reset_token = $1 AND reset_expiry > NOW()",
-            [hashedToken]
-        );
+        const user = await db.user_account.findOne({
+            where: {
+                reset_token: hashedToken,
+                reset_expiry: { [Op.gt]: new Date() },
+            },
+        });
 
-        if (user.rows.length === 0) {
+        if (!user) {
             return res.redirect("/reset/forgot-password?error=Reenter%20Email");
         }
 
         const hashed = await bcrypt.hash(newPassword, SALT_ROUNDS);
-        await pool.query(
-            "UPDATE user_account SET password_hash = $1, reset_token = NULL, reset_expiry = NULL WHERE id = $2",
-            [hashed, user.rows[0].id]
-        );
+        await user.update({
+            password_hash: hashed,
+            reset_token: null,
+            reset_expiry: null,
+        });
 
         res.redirect("/reset/reset-confirmation");
-    } catch {
+    } catch (err) {
+        logger.error(`Error resetting password: ${err}`);
         return res.redirect("/reset-password?error=Server%20Error");
     }
 }

@@ -55,11 +55,6 @@ const renderMemberRow = (m, userRole, currentUserId) => {
                     <a href="/profile?user_id=${m.id}" class="dropdown-item-link">View Profile</a>
                     
                     ${actionButtons}
-                    
-                    <form action="/report" method="POST" style="margin:0;">
-                        <input type="hidden" name="user_id" value="${m.id}">
-                        <button type="submit">Report</button>
-                    </form>
                 </div>
             </div>
         </li>`;
@@ -266,41 +261,34 @@ export const profilePage = (user, sessionUser, error, ROLES) => {
     const errorMessageHtml = error ? `<div class="alert-box">${error}</div>` : "";
 
     // Logic for Management Dropdown
-    let manageDropdownHtml = "";
+    let actions = "";
     if (sessionUser.role === ROLES.OWNER && user.id !== sessionUser.id) {
-        let actions = "";
-
+        // Promotion Action
         if (user.role < ROLES.ADMIN) {
             const nextRoleData = roleMap[user.role + 1];
             actions += `
-                <form action="/admin/change-role" method="POST" style="margin:0;">
-                    <input type="hidden" name="user_id" value="${user.id}">
-                    <input type="hidden" name="new_role" value="${user.role + 1}">
-                    <button type="submit">Promote to ${nextRoleData.label}</button>
-                </form>`;
+            <form action="/admin/change-role" method="POST" style="margin:0;">
+                <input type="hidden" name="user_id" value="${user.id}">
+                <input type="hidden" name="new_role" value="${user.role + 1}">
+                <button type="submit" class="dropdown-item">Promote to ${nextRoleData.label}</button>
+            </form>`;
         }
 
+        // Demotion Action
         if (user.role > ROLES.MEMBER) {
             const prevRoleData = roleMap[user.role - 1];
             actions += `
-                <form action="/admin/change-role" method="POST" style="margin:0;">
-                    <input type="hidden" name="user_id" value="${user.id}">
-                    <input type="hidden" name="new_role" value="${user.role - 1}">
-                    <button type="submit" style="color:var(--accent-red);">Demote to ${prevRoleData.label}</button>
-                </form>`;
+            <form action="/admin/change-role" method="POST" style="margin:0;">
+                <input type="hidden" name="user_id" value="${user.id}">
+                <input type="hidden" name="new_role" value="${user.role - 1}">
+                <button type="submit" class="dropdown-item" style="color:var(--accent-red);">Demote to ${prevRoleData.label}</button>
+            </form>`;
         }
 
+        // Danger Zone Actions
         actions += `
-            <button type="button" onclick="openTransferModal()" style="color:var(--accent-red); font-weight:bold; border-top:1px solid var(--border-color); margin-top:5px; padding-top:10px;">Transfer Ownership</button>
-            <button type="button" onclick="openRemoveModal()" style="color:var(--accent-red);">Remove from Team</button>`;
-
-        manageDropdownHtml = `
-            <div class="menu-container" style="flex: 1; position: relative;">
-                <button type="button" class="manage-btn" style="width:100%;" onclick="toggleMenu(event, 'manage-menu')">Manage User ▾</button>
-                <div id="manage-menu" class="dropdown-menu" style="top: 100%; right: 0; width: 100%; min-width: 200px; z-index: 1000; display: none; box-shadow: var(--shadow-lg);">
-                    ${actions}
-                </div>
-            </div>`;
+        <button type="button" class="dropdown-item" onclick="openTransferModal()" style="color:var(--accent-red); font-weight:bold; border-top:1px solid var(--border-color);">Transfer Ownership</button>
+        <button type="button" class="dropdown-item" onclick="openRemoveModal()" style="color:var(--accent-red);">Remove from Team</button>`;
     }
 
     return `
@@ -374,12 +362,32 @@ export const profilePage = (user, sessionUser, error, ROLES) => {
                 <div class="info-value">${user.team_name || "No Team Assigned"}</div>
             </div>
 
-            <div style="margin-top: 2rem; display: flex; gap: 10px; position: relative;">
-                <a href="/dashboard" style="text-decoration: none; flex: 1;">
-                    <button type="button" class="secondary-btn" style="width: 100%;">Back to Dashboard</button>
-                </a>
-                ${manageDropdownHtml}
-            </div>
+<div style="margin-top: 2rem; display: flex; gap: 10px; align-items: flex-start; justify-content: center;">
+    <a href="/dashboard" style="text-decoration: none; flex: 1;">
+        <button type="button" class="secondary-btn" 
+            style="width: 100%; margin: 0; height: 42px; font-family: 'Inter', sans-serif; font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em;">
+            Back to Dashboard
+        </button>
+    </a>
+
+    ${
+        user.id !== sessionUser.id && sessionUser.role !== ROLES.MEMBER
+            ? `
+    <div class="menu-container" style="flex: 1; position: relative;">
+        <button type="button" class="manage-btn" 
+            style="width: 100%; margin: 0; height: 42px; display: block; font-family: 'Inter', sans-serif; font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em;" 
+            onclick="toggleMenu(event, 'manage-menu')">
+            Manage User ▾
+        </button>
+        <div id="manage-menu" class="dropdown-menu" 
+            style="position: absolute; top: 45px; right: 0; width: 100%; min-width: 200px; z-index: 1000; display: none; background: var(--bg-card); border: 1px solid var(--border-color); box-shadow: 0 4px 12px rgba(0,0,0,0.3); border-radius: 8px; padding: 5px 0;">
+            ${actions}
+        </div>
+    </div>
+    `
+            : ""
+    }
+</div>
         </div>
 
         <script>
