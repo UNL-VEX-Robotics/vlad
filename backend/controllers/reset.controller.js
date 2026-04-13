@@ -11,7 +11,7 @@ import {
     emailSentPage,
     setNewPasswordPage,
     resetConfirmationPage,
-} from "../views/reset.view.js";
+} from "../views/reset/reset.view.js";
 
 /**
  * Renders the forgot password page.

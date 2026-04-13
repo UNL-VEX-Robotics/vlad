@@ -4,6 +4,8 @@ import compression from "compression";
 import morgan from "morgan";
 import hpp from "hpp";
 import db from "./db.js";
+import path from "path";
+import { fileURLToPath } from "url";
 import authRoutes from "./routes/auth.js";
 import emailRoutes from "./routes/reset.js";
 import adminRoutes from "./routes/admin.js";
@@ -15,6 +17,9 @@ import session from "express-session";
 import SequelizeStoreConstructor from "connect-session-sequelize";
 import bodyParser from "body-parser";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
 const SequelizeStore = SequelizeStoreConstructor(session.Store);
 const sessionStore = new SequelizeStore({
@@ -23,6 +28,9 @@ const sessionStore = new SequelizeStore({
     checkExpirationInterval: 60 * 60 * 1000,
     expiration: 24 * 60 * 60 * 1000,
 });
+
+app.set("view engine", "twig");
+app.set("views", path.join(__dirname, "views"));
 
 // TODO: Change to event listener so that the helmet contentSecurityPolicy can be turned to truw
 app.use(

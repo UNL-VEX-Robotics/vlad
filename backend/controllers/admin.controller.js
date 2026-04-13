@@ -2,7 +2,7 @@ import db from "../db.js";
 import { ROLES } from "../utils/constants.js";
 import logger from "../utils/logger.js";
 import { withLayout } from "../views/layout.js";
-import { teamRequestsPage } from "../views/admin.view.js";
+import { teamRequestsPage } from "../views/admin/admin.view.js";
 
 /**
  * Renders the user Team Requests page.

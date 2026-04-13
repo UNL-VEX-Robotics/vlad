@@ -7,7 +7,7 @@ import {
     settingsPage,
     verificationSentPage,
     accountSecuredPage,
-} from "../views/settings.view.js";
+} from "../views/settings/settings.view.js";
 import pkg from "../../package.json" with { type: "json" };
 import { TRANSPORTER, EMAIL_REGEX } from "../utils/constants.js";
 import crypto from "crypto";

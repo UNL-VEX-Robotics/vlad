@@ -1,7 +1,7 @@
 import bcrypt from "bcrypt";
 import db from "../db.js";
 import { withLayout } from "../views/layout.js";
-import { signupPage, loginPage, createTeamPage, joinTeamPage } from "../views/auth.view.js";
+import { signupPage, loginPage, createTeamPage, joinTeamPage } from "../views/auth/auth.view.js";
 import { ROLES, EMAIL_REGEX, SALT_ROUNDS, PASSWORD_REGEX } from "../utils/constants.js";
 import logger from "../utils/logger.js";
 

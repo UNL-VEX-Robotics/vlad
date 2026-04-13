@@ -22,16 +22,28 @@ async function startServer() {
 const shutdown = async () => {
     logger.info("Starting shutdown process");
 
+    // Force Quit timer for delevopment
+    const forceQuit = setTimeout(() => {
+        logger.error("Forced shutdown: Connections did not close in time.");
+        process.exit(1);
+    }, 5000);
+
+    forceQuit.unref();
+
     try {
         if (sequelize) {
             await sequelize.close();
             logger.info("Database connection closed");
         }
 
-        server.close(() => {
-            logger.info("HTTP server closed");
-            process.exit(0);
-        });
+        if (server) {
+            server.closeIdleConnections();
+            server.close(() => {
+                logger.info("HTTP server closed");
+                clearTimeout(forceQuit);
+                process.exit(0);
+            });
+        }
     } catch (err) {
         logger.error(`Error shutting down: ${err}`);
         process.exit(1);

@@ -1,6 +1,6 @@
 import db from "../db.js";
 import { withLayout } from "../views/layout.js";
-import { createSubteamPage } from "../views/subteam.view.js";
+import { createSubteamPage } from "../views/subteam/subteam.view.js";
 import logger from "../utils/logger.js";
 
 /**

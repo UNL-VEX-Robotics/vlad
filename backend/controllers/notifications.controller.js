@@ -1,7 +1,7 @@
 import db from "../db.js";
 import nodeCron from "node-cron";
 import { withLayout } from "../views/layout.js";
-import { notificationsPage } from "../views/notifications.view.js";
+import { notificationsPage } from "../views/notifications/notifications.view.js";
 import logger from "../utils/logger.js";
 import { Op } from "sequelize";
 
