@@ -1,0 +1,108 @@
+{% extends "layout.twig" %}
+
+{% block content %}
+<style>
+    .creation-card {
+        max-width: 520px; 
+        min-height: auto; 
+        width: 95%;
+        margin: 60px auto;
+        padding: 35px 45px; 
+    }
+
+    .creation-header {
+        border-bottom: 2px solid var(--accent-red); 
+        padding-bottom: 12px; 
+        margin-bottom: 25px;
+        color: var(--text-heading);
+        font-size: 1.5rem;
+        letter-spacing: -0.01em;
+    }
+
+    .team-badge {
+        color: var(--text-muted); 
+        font-size: 0.75rem; 
+        margin-bottom: 25px; 
+        text-transform: uppercase; 
+        font-weight: 700; 
+        letter-spacing: 0.05em;
+    }
+
+    .team-name-highlight {
+        color: var(--text-main);
+        background: var(--btn-secondary-bg);
+        padding: 3px 10px;
+        border-radius: 5px;
+        margin-left: 5px;
+        font-size: 0.85rem;
+    }
+
+    .creation-card input[type="text"] {
+        width: 100%;
+        padding: 12px;
+        font-size: 1rem; 
+        background: var(--bg-body);
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        color: var(--text-main);
+        box-sizing: border-box;
+    }
+
+    .info-label {
+        display: block;
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        margin-bottom: 8px;
+        letter-spacing: 0.05rem;
+    }
+
+    .form-actions button, 
+    .form-actions .secondary-btn {
+        width: 100%;
+        display: block;
+        text-align: center;
+        box-sizing: border-box;
+        padding: 12px; 
+        font-size: 0.95rem;
+    }
+</style>
+
+<div class="card creation-card">
+    <form action="/subteam/create-subteam" method="POST">
+        <h2 class="creation-header">Create Subteam</h2>
+        
+        {% if error %}
+            <div class="alert-box" style="margin-bottom: 25px;">
+                {{ error }}
+            </div>
+        {% endif %}
+
+        <p class="team-badge">
+            Primary Team: <span class="team-name-highlight">{{ team|default("N/A") }}</span>
+        </p>
+
+        <div class="info-group">
+            <label class="info-label">Subteam Name</label>
+            <input 
+                type="text" 
+                name="subteamName" 
+                placeholder="Enter Subteam Name Here..." 
+                required 
+                autofocus 
+            />
+        </div>
+
+        <div class="form-actions" style="margin-top: 35px;">
+            <button type="submit" style="background: var(--accent-red); color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: opacity 0.2s;">
+                Deploy Subteam
+            </button>
+            
+            <a href="/dashboard" class="secondary-btn" style="margin-top: 12px; text-decoration: none;">
+                Return to Dashboard
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}

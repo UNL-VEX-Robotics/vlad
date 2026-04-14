@@ -1,6 +1,4 @@
 import db from "../db.js";
-import { withLayout } from "../views/layout.js";
-import { createSubteamPage } from "../views/subteam/subteam.view.js";
 import logger from "../utils/logger.js";
 
 /**
@@ -11,9 +9,11 @@ import logger from "../utils/logger.js";
 export const renderCreateSubteam = (req, res) => {
     const error = req.query.error;
     const primaryTeam = req.session.team;
-
-    const content = createSubteamPage(primaryTeam, error);
-    res.send(withLayout("Initialize Subteam", content, req));
+    res.render('subteam/create_subteam', {
+        title: "Create Subteam",
+        team: primaryTeam,
+        error: error
+    });
 };
 
 /**
@@ -78,6 +78,7 @@ export async function deleteSubteam(req, res) {
 }
 
 /**
+ * TODO: Make edit subteam page
  * Updates the name of an existing subteam.
  * 1. Validates the new name is provided.
  * 2. Ensures the new name isn't already used by another subteam in the same parent team.
