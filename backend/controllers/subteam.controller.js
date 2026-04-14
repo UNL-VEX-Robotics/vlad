@@ -9,10 +9,10 @@ import logger from "../utils/logger.js";
 export const renderCreateSubteam = (req, res) => {
     const error = req.query.error;
     const primaryTeam = req.session.team;
-    res.render('subteam/create_subteam', {
+    res.render("subteam/create_subteam", {
         title: "Create Subteam",
         team: primaryTeam,
-        error: error
+        error: error,
     });
 };
 
