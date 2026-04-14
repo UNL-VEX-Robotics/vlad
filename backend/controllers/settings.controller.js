@@ -1,13 +1,4 @@
 import db from "../db.js";
-import { withLayout } from "../views/layout.js";
-import {
-    changeEmailPage,
-    emailUpdateSuccessPage,
-    finalizeEmailChangePage,
-    settingsPage,
-    verificationSentPage,
-    accountSecuredPage,
-} from "../views/settings/settings.view.js";
 import pkg from "../../package.json" with { type: "json" };
 import { TRANSPORTER, EMAIL_REGEX } from "../utils/constants.js";
 import crypto from "crypto";
@@ -29,13 +20,12 @@ export const renderSettings = async (req, res) => {
             where: { user_id: userId },
         });
 
-        const pageData = {
+        res.render("settings/settings", {
+            title: "Settings",
             user: { user_name: req.session.user_name, email: req.session.email },
             settings: settings,
             version: pkg.version,
-        };
-
-        res.send(withLayout("Settings", settingsPage(pageData), req));
+        });
     } catch (err) {
         logger.error(`Error rendering settings page: ${err}`);
     }
@@ -48,7 +38,9 @@ export const renderSettings = async (req, res) => {
  * @returns {Promise<void>} A promise resolving to the rendered page.
  */
 export const renderChangeEmailPage = (req, res) => {
-    return res.send(withLayout("Change Email", changeEmailPage(req.error), req));
+    return res.render("email_change/request", {
+        title: "Change Email",
+    });
 };
 
 /**
@@ -58,7 +50,9 @@ export const renderChangeEmailPage = (req, res) => {
  * @returns {Promise<void>} A promise resolving to the rendered page.
  */
 export const renderVerificationSentPage = (req, res) => {
-    return res.send(withLayout("Verify Email", verificationSentPage(), req));
+    return res.render("email_change/sent", {
+        title: "Verify Email",
+    });
 };
 
 /**
@@ -84,13 +78,11 @@ export const renderFinalizeEmailChangePage = async (req, res) => {
         if (!user) {
             return res.redirect("/settings/change-email?error=Invalid%20or%20Expired%20Token");
         }
-        return res.send(
-            withLayout(
-                "Finalize Email Change",
-                finalizeEmailChangePage(token, user.pending_email),
-                req
-            )
-        );
+        return res.render("email_change/finalize", {
+            title: "Finalize Email Change",
+            token: token,
+            pending_email: user.pending_email,
+        });
     } catch (err) {
         logger.error(`Error rendering finalize email change page: ${err}`);
     }
@@ -103,7 +95,9 @@ export const renderFinalizeEmailChangePage = async (req, res) => {
  * @returns {Promise<void>} A promise resolving to the rendered page.
  */
 export const renderEmailUpdateSuccessPage = (req, res) => {
-    return res.send(withLayout("Email Updated", emailUpdateSuccessPage(), req));
+    return res.render("email_change/success", {
+        title: "Email Updated",
+    });
 };
 
 /**
@@ -114,7 +108,10 @@ export const renderEmailUpdateSuccessPage = (req, res) => {
  */
 export const renderAccountSecuredPage = (req, res) => {
     const { attempted_email } = req.query;
-    return res.send(withLayout("Account Secured", accountSecuredPage({ attempted_email }), req));
+    return res.render("email_change/account_secured", {
+        title: "Account Secured",
+        attempted_email: attempted_email,
+    });
 };
 
 /**
@@ -351,7 +348,7 @@ export async function reportUnauthorizedEmailChange(req, res) {
                 { transaction: t }
             );
 
-            await db.sequelize.query("DELETE FROM session WHERE sess::json->>'user_id' = :id", {
+            await db.sequelize.query("DELETE FROM session WHERE data::json->>'user_id' = :id", {
                 replacements: { id: user.id.toString() },
                 transaction: t,
             });

@@ -1,0 +1,21 @@
+{% extends "../layout.twig" %}
+
+{% block content %}
+<div class="card" style="border-top: 5px solid var(--accent-red); max-width: 550px; margin: 60px auto;">
+    <h2 style="color: var(--accent-red); margin-bottom: 15px;">Account Secured</h2>
+    <p style="color: var(--text-main);">We have successfully cancelled the request to change your email to <strong>{{ attempted_email }}</strong>.</p>
+    
+    <div class="alert-box" style="background: rgba(255,0,0,0.05); color: var(--text-main); padding: 20px; border-radius: 6px; margin: 25px 0; border: 1px solid var(--border-color);">
+        <strong style="color: var(--accent-red); text-transform: uppercase; font-size: 0.75rem;">Security Actions Taken:</strong>
+        <ul style="text-align: left; margin: 15px 0 0 0; padding-left: 20px; font-size: 0.9rem; line-height: 1.8;">
+            <li>All active sessions have been terminated.</li>
+            <li>Pending email changes have been cleared.</li>
+            <li>A password reset is now required to access this account.</li>
+        </ul>
+    </div>
+
+    <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 25px;">To regain access, please go to the login page and use the "Forgot Password" flow to verify your identity.</p>
+    
+    <a href="/auth/login" class="vlad-btn-accent" style="text-decoration:none; display:block; text-align: center;">Go to Login</a>
+</div>
+{% endblock %}

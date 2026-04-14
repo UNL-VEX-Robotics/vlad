@@ -1,0 +1,33 @@
+{% extends "../layout.twig" %}
+
+{% block content %}
+<style>
+    .success-icon { font-size: 3rem; margin-bottom: 1rem; }
+    .instruction-box {
+        background: var(--bg-body); border-radius: 8px; padding: 20px;
+        margin: 25px 0; text-align: left; font-size: 0.9rem;
+        color: var(--text-main); border: 1px solid var(--border-color);
+    }
+</style>
+
+<div class="card" style="text-align: center; max-width: 500px; margin: 60px auto;">
+    <div class="success-icon">✉️</div>
+    <h2 style="color: var(--text-heading);">Verify Your New Email</h2>
+    <p style="color: var(--text-muted);">We've sent a verification link to your new email address.</p>
+    
+    <div class="instruction-box">
+        <strong style="color: var(--accent-red);">Important Security Note:</strong>
+        <ul style="margin: 10px 0 0 20px; padding: 0; line-height: 1.6;">
+            <li>A notification was also sent to your <strong>current</strong> email address.</li>
+            <li>Click the link in the <strong>new</strong> email to finalize the change.</li>
+            <li>The verification link will expire in 1 hour.</li>
+        </ul>
+    </div>
+
+    <a href="/settings" class="vlad-btn-secondary" style="text-decoration: none; display: inline-block;">Return to Settings</a>
+    
+    <p style="font-size: 0.8rem; margin-top: 20px; color: var(--text-muted);">
+        Didn't get the email? <a href="/settings/change-email" style="color: var(--accent-red); text-decoration: none;">Try again</a>
+    </p>
+</div>
+{% endblock %}

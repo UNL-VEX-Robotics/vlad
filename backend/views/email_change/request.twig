@@ -1,0 +1,28 @@
+{% extends "../layout.twig" %}
+
+{% block content %}
+<div class="card" style="max-width: 500px; margin: 60px auto;">
+    <form method="POST" action="/settings/verify-email">
+        <h2 style="color: var(--text-heading); margin-bottom: 20px;">Change Email Address</h2>
+        
+        {% if error %}
+            <div class="alert-box" style="background: rgba(255,0,0,0.1); color: var(--accent-red); padding: 12px; border-radius: 6px; margin-bottom: 20px;">
+                {{ error }}
+            </div>
+        {% endif %}
+
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 25px;">
+            Enter your <strong>new</strong> email address. We'll send a verification link to confirm the change.
+        </p>
+        
+        <div class="form-group" style="margin-bottom: 20px;">
+            <label style="display:block; font-size: 0.7rem; font-weight: bold; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px;">New Email Address</label>
+            <input name="pending_email" type="email" placeholder="new-email@example.com" class="vlad-input" required style="width: 100%;" />
+        </div>
+        
+        <button type="submit" class="vlad-btn-accent" style="width: 100%;">Send Verification Link</button>
+    </form>
+
+    <a href="/settings" class="secondary-btn" style="display: block; text-align: center; margin-top: 20px; color: var(--text-muted); text-decoration: none; font-size: 0.9rem;">Back to Settings</a>
+</div>
+{% endblock %}

@@ -1,0 +1,19 @@
+{% extends "../layout.twig" %}
+
+{% block content %}
+<div class="card" style="text-align: center; max-width: 500px; margin: 80px auto;">
+    <div style="font-size: 3.5rem; margin-bottom: 15px;">✅</div>
+    <h2 style="color: var(--text-heading);">Email Updated</h2>
+    <p style="color: var(--text-main); margin-bottom: 20px; line-height: 1.5;">
+        Your email address has been successfully updated. <br>
+        <strong style="color: var(--accent-red);">For your security, you have been logged out.</strong>
+    </p>
+    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 30px;">
+        Please use your new email address to log back in.
+    </p>
+    
+    <form action="/auth/login" method="GET">
+        <button type="submit" class="vlad-btn-accent" style="width: 100%;">Log In with New Email</button>
+    </form>
+</div>
+{% endblock %}
