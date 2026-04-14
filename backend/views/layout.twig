@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="{{ session.theme|default('system') }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} | VLAD</title>
+    
+    <style>
+        :root[data-theme="light"] {
+            --bg-body: #f0f2f5; --bg-card: #ffffff; --bg-sidebar: #ffffff;
+            --text-main: #111111; --text-heading: #000000; --text-label: #2d3748; --text-muted: #4a5568;
+            --border-color: #cbd5e0; --input-bg: #ffffff;
+            --btn-secondary-bg: #e2e8f0; --btn-secondary-text: #1a202c;
+            --accent-red: #d32f2f; --accent-hover: #b71c1c;
+            --badge-approved-bg: #c6f6d5; --badge-approved-text: #1c4532;
+            --badge-pending-bg: #fed7d7; --badge-pending-text: #9b2c2c;
+            --alert-bg: #fff5f5; --alert-text: #c53030; --alert-border: #fc8181;
+        }
+
+        [data-theme="dark"] {
+            --bg-body: #000000; --bg-card: #121212; --bg-sidebar: #121212;
+            --text-main: #f7fafc; --text-heading: #ffffff; --text-label: #a0aec0; --text-muted: #718096;
+            --border-color: #2d2d2d; --input-bg: #1a1a1a;
+            --btn-secondary-bg: #2d2d2d; --btn-secondary-text: #f7fafc;
+            --accent-red: #ff4d4d; --accent-hover: #ff6666;
+            --badge-approved-bg: #1c4532; --badge-approved-text: #9ae6b4;
+            --badge-pending-bg: #441919; --badge-pending-text: #feb2b2;
+            --alert-bg: #822727; --alert-text: #ffffff; --alert-border: #e53e3e;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root:not([data-theme="light"]) {
+                --bg-body: #000000; --bg-card: #121212; --accent-red: #ff4d4d;
+                --text-main: #f7fafc; --text-heading: #ffffff; --text-label: #a0aec0; --text-muted: #718096;
+                --border-color: #2d2d2d; --input-bg: #1a1a1a;
+                --btn-secondary-bg: #2d2d2d; --btn-secondary-text: #f7fafc;
+                --badge-approved-bg: #1c4532; --badge-approved-text: #9ae6b4;
+                --badge-pending-bg: #441919; --badge-pending-text: #feb2b2;
+            }
+        }
+
+        * { box-sizing: border-box; }
+
+        body { 
+            font-family: 'Inter', sans-serif; 
+            margin: 0; 
+            background: var(--bg-body); 
+            color: var(--text-main); 
+            display: flex; 
+            flex-direction: column; 
+            min-height: 100vh; 
+            transition: background 0.3s, color 0.3s; 
+        }
+        
+        .top-nav {
+            height: 45px; display: flex; justify-content: flex-end; align-items: center;
+            padding: 0 40px; background: var(--bg-card); border-bottom: 1px solid var(--border-color);
+            position: sticky; top: 0; z-index: 1000;
+        }
+
+        main {
+            min-height: calc(100vh - 45px); width: 100%;
+            display: flex; flex-direction: column;
+        }
+
+        /* Common Component Styles */
+        button { cursor: pointer; transition: opacity 0.2s; font-family: inherit; }
+        button:hover { opacity: 0.9; }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        input, select, textarea {
+            width: 100%; padding: 10px; border-radius: 6px;
+            border: 1px solid var(--border-color); background: var(--input-bg);
+            color: var(--text-main); margin-bottom: 15px;
+        }
+
+        .secondary-btn {
+            background: var(--btn-secondary-bg);
+            color: var(--btn-secondary-text);
+            border: 1px solid var(--border-color);
+            padding: 10px 15px;
+            border-radius: 6px;
+            font-weight: 600;
+        }
+
+        .manage-btn {
+            width: 100%; padding: 10px; background: var(--bg-body);
+            border: 1px solid var(--border-color); color: var(--text-main);
+            border-radius: 6px; font-weight: bold;
+        }
+
+        /* Dropdown & Menu Styles */
+        .dropdown-menu {
+            display: none; position: absolute; background: var(--bg-card);
+            border: 1px solid var(--border-color); padding: 4px 0; z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5); right: 0; width: 180px; top: 35px;
+            border-radius: 8px;
+        }
+        
+        .menu-link, .dropdown-menu button {
+            width: 100%; text-align: left; background: none; border: none;
+            padding: 8px 15px; color: var(--text-main); cursor: pointer;
+            display: block; font-size: 0.85rem; text-decoration: none; box-sizing: border-box;
+        }
+
+        .profile-trigger {
+            background: none; border: 1px solid var(--border-color); color: var(--text-heading);
+            padding: 4px 12px; border-radius: 6px; cursor: pointer; font-size: 0.85rem;
+        }
+
+        .dot-btn {
+            background: none; border: none; color: var(--text-muted);
+            font-size: 1.2rem; cursor: pointer; padding: 0 5px;
+        }
+    </style>
+
+    <script>
+        (function() {
+            const theme = "{{ session.theme|default('system') }}";
+            if (theme === 'system') {
+                const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+            }
+        })();
+    </script>
+</head>
+<body>
+    <div class="top-nav">
+        {% if session.user_name %}
+            <div class="menu-container" style="position: relative;">
+                <button class="profile-trigger" onclick="toggleMenu(event, 'top-profile-menu')">
+                    Account: {{ session.user_name }} ▾
+                </button>
+                <div id="top-profile-menu" class="dropdown-menu">
+                    <a href="/profile?user_id={{ session.user_id }}" class="menu-link">My Profile</a>
+                    <a href="/notifications" class="menu-link">Notification Hub</a>
+                    <a href="/settings" class="menu-link">Settings</a>
+                    
+                    <form action="/auth/logout" method="POST" style="border-top: 1px solid var(--border-color); margin-top: 5px; padding-top: 5px;">
+                        <button type="submit" class="menu-link" style="color: var(--accent-red); width: 100%;">Log Out</button>
+                    </form>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <script>
+        function toggleMenu(event, id) {
+            event.stopPropagation();
+            const menu = document.getElementById(id);
+            const isVisible = menu.style.display === 'block';
+            document.querySelectorAll('.dropdown-menu').forEach(m => m.style.display = 'none');
+            if (menu) menu.style.display = isVisible ? 'none' : 'block';
+        }
+
+        document.addEventListener('click', () => {
+            document.querySelectorAll('.dropdown-menu').forEach(m => m.style.display = 'none');
+        });
+    </script>
+</body>
+</html>

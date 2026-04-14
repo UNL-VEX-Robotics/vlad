@@ -1,0 +1,133 @@
+{% extends "layout.twig" %}
+
+{% block content %}
+<style>
+    /* Dimensions & Layout */
+    .profile-card {
+        max-width: 480px; 
+        width: 90%;
+        margin: 60px auto;
+        padding: 40px; 
+    }
+
+    .profile-header { text-align: center; margin-bottom: 2.5rem; }
+    
+    .avatar-circle { 
+        width: 90px; height: 90px; 
+        background: var(--accent-red); color: white; 
+        border-radius: 50%; display: flex; align-items: center; 
+        justify-content: center; font-size: 2.2rem; margin: 0 auto 1.2rem;
+        text-transform: uppercase; box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        font-weight: bold;
+    }
+
+    /* Badges */
+    .badge { display: inline-block; padding: 6px 16px; border-radius: 99px; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px; color: white; }
+    .badge-4 { background: var(--accent-red); } 
+    .badge-3 { background: #805ad5; } 
+    .badge-2 { background: #3182ce; } 
+    .badge-1 { background: #38a169; } 
+    .badge-0 { background: #718096; }
+
+    /* Text Formatting */
+    .info-group {
+        margin-bottom: 1.5rem;
+        text-align: left;
+    }
+
+    .info-label {
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05rem;
+        margin-bottom: 4px;
+    }
+
+    .info-value {
+        font-size: 1.1rem;
+        color: var(--text-heading);
+        font-weight: 500;
+    }
+
+    /* Button Layout fixes */
+    .profile-actions {
+        margin-top: 2.5rem; 
+        display: flex; 
+        gap: 12px;
+    }
+
+    .manage-btn {
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+</style>
+
+<div class="card profile-card">
+    <div class="profile-header">
+        <div class="avatar-circle">{{ profileUser.user_name|first }}</div>
+        <h2 style="color: var(--text-heading); margin-bottom: 8px; font-size: 1.8rem;">{{ profileUser.user_name }}</h2>
+        <span class="badge badge-{{ profileUser.role }}">
+            {% if profileUser.role == ROLES.OWNER %}Owner{% elseif profileUser.role == ROLES.ADMIN %}Admin{% elseif profileUser.role == ROLES.LEAD %}Lead{% elseif profileUser.role == ROLES.MEMBER %}Member{% else %}Pending{% endif %}
+        </span>
+    </div>
+
+    <div class="info-group">
+        <div class="info-label">Email Address</div>
+        <div class="info-value">{{ profileUser.email }}</div>
+    </div>
+
+    <div class="info-group">
+        <div class="info-label">Current Team</div>
+        <div class="info-value">{{ profileUser.team_name|default("No Team Assigned") }}</div>
+    </div>
+
+    <div class="profile-actions">
+        <a href="/dashboard" style="text-decoration: none; flex: 1;">
+            <button type="button" class="secondary-btn" style="width: 100%;">Back to Dashboard</button>
+        </a>
+
+        {% if session.user_id != profileUser.id and session.role > ROLES.MEMBER %}
+            <div class="menu-container" style="flex: 1; position: relative;">
+                <button type="button" class="manage-btn" onclick="toggleMenu(event, 'manage-menu')">Manage User ▾</button>
+                <div id="manage-menu" class="dropdown-menu">
+                    {# PROMOTE LOGIC #}
+                    {% if profileUser.role < ROLES.ADMIN and session.role > profileUser.role %}
+                        <form action="/admin/change-role" method="POST" style="margin:0;">
+                            <input type="hidden" name="user_id" value="{{ profileUser.id }}">
+                            <input type="hidden" name="new_role" value="{{ profileUser.role + 1 }}">
+                            <button type="submit">Promote to 
+                                {% if profileUser.role == ROLES.PENDING %}Member
+                                {% elseif profileUser.role == ROLES.MEMBER %}Lead
+                                {% elseif profileUser.role == ROLES.LEAD %}Admin
+                                {% endif %}
+                            </button>
+                        </form>
+                    {% endif %}
+
+                    {# DEMOTE LOGIC #}
+                    {% if profileUser.role > ROLES.MEMBER and session.role > profileUser.role %}
+                        <form action="/admin/change-role" method="POST" style="margin:0;">
+                            <input type="hidden" name="user_id" value="{{ profileUser.id }}">
+                            <input type="hidden" name="new_role" value="{{ profileUser.role - 1 }}">
+                            <button type="submit" style="color: var(--accent-red);">Demote to 
+                                {% if profileUser.role == ROLES.ADMIN %}Lead
+                                {% elseif profileUser.role == ROLES.LEAD %}Member
+                                {% endif %}
+                            </button>
+                        </form>
+                    {% endif %}
+
+                    {% if session.role == ROLES.OWNER %}
+                        <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 5px 0;">
+                        <button type="button" onclick="document.getElementById('transferModal').style.display='flex'" style="color:var(--accent-red); font-weight:bold;">Transfer Ownership</button>
+                        <button type="button" onclick="document.getElementById('removeModal').style.display='flex'" style="color:var(--accent-red);">Remove Member</button>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

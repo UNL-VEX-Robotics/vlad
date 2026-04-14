@@ -80,6 +80,11 @@ app.use(async (req, res, next) => {
     next();
 });
 
+app.use((req, res, next) => {
+    res.locals.session = req.session;
+    next();
+});
+
 // --- ROUTES ---
 
 const auth = "/auth";

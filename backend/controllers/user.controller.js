@@ -1,6 +1,4 @@
 import db from "../db.js";
-import { withLayout } from "../views/layout.js";
-import { dashboardPage, profilePage } from "../views/user.view.js";
 import { ROLES } from "../utils/constants.js";
 import logger from "../utils/logger.js";
 
@@ -51,15 +49,15 @@ export const renderDashboard = async (req, res) => {
             });
         }
 
-        const pageData = {
+        res.render("user/dashboard", {
+            title: "Dashboard",
             user: req.session,
             notifications: user.notifications || [],
             members: members.map((m) => m.get({ plain: true })),
             subteams: subteams.map((s) => s.get({ plain: true })),
+            ROLES: ROLES,
             error: req.query.error,
-        };
-
-        res.send(withLayout("Dashboard", dashboardPage(pageData), req));
+        });
     } catch (err) {
         logger.error(`Error rendering dashboard: ${err}`);
         return res.status(500).json({ error: "Failed to load dashboard", details: err.message });
@@ -95,13 +93,12 @@ export const renderProfile = async (req, res) => {
             team_name: user.team?.name || null,
         };
 
-        const sessionUser = {
-            id: req.session.user_id,
-            role: req.session.role,
-        };
-
-        const content = profilePage(userData, sessionUser, error, ROLES);
-        res.send(withLayout(`${user.user_name}'s Profile`, content, req));
+        res.render("user/profile", {
+            title: user.user_name + "'s Profile",
+            profileUser: userData,
+            ROLES: ROLES,
+            error: error,
+        });
     } catch (err) {
         logger.error(`Error rendering profile page: ${err}`);
         res.status(500).json({ error: "Failed to load profile", details: err.message });

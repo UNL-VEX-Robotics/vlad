@@ -22,13 +22,15 @@ async function startServer() {
 const shutdown = async () => {
     logger.info("Starting shutdown process");
 
-    // Force Quit timer for delevopment
+    // Force Quit timer for development
+
     const forceQuit = setTimeout(() => {
         logger.error("Forced shutdown: Connections did not close in time.");
         process.exit(1);
     }, 5000);
-
-    forceQuit.unref();
+    if (process.env.NODE_ENV === "development") {
+        forceQuit.unref();
+    }
 
     try {
         if (sequelize) {
