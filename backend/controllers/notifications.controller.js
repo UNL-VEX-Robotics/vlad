@@ -1,7 +1,5 @@
 import db from "../db.js";
 import nodeCron from "node-cron";
-import { withLayout } from "../views/layout.js";
-import { notificationsPage } from "../views/notifications/notifications.view.js";
 import logger from "../utils/logger.js";
 import { Op } from "sequelize";
 
@@ -24,11 +22,15 @@ export const renderNotifications = async (req, res) => {
                 },
             },
             attributes: ["id", "title", "message", "createdAt", "is_read"],
-            order: [["createdAt", "DESC"]],
+            order: [
+                ["is_read", "ASC"], // false (0) comes before true (1)
+                ["createdAt", "DESC"], // Newest first
+            ],
         });
-
-        const content = notificationsPage(notifications.map((n) => n.get({ plain: true })));
-        res.send(withLayout("Notification Hub", content, req));
+        return res.render("notifications/notifications", {
+            title: "Notifications",
+            notifications: notifications,
+        });
     } catch (err) {
         logger.error(`Error rendering notifications page: ${err}`);
         return res.redirect("/dashboard?error=Server%20Error");
@@ -65,10 +67,10 @@ nodeCron.schedule(
  * @param {Object} res - Express response object. Redirects to dashboard after dismissal.
  */
 export async function markAsRead(req, res) {
-    const { notification_id } = req.body;
+    const { notification_id, redirect } = req.body;
     try {
         await db.notifications.update({ is_read: true }, { where: { id: notification_id } });
-        const referer = req.get("Referer") || "/dashboard";
+        const referer = redirect || "/dashboard";
         return res.redirect(referer);
     } catch (err) {
         logger.error(`Error marking notification as read: ${err}`);
@@ -82,12 +84,13 @@ export async function markAsRead(req, res) {
  * @param {Object} res - Express response object. Redirects to dashboard after marking as read.
  */
 export async function markAllAsRead(req, res) {
+    const { redirect } = req.body;
     try {
         await db.notifications.update(
             { is_read: true },
             { where: { user_id: req.session.user_id } }
         );
-        const referer = req.get("Referer") || "/dashboard";
+        const referer = redirect || "/dashboard";
         return res.redirect(referer);
     } catch (err) {
         logger.error(`Error marking all notifications as read: ${err}`);

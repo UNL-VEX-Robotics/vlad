@@ -1,0 +1,115 @@
+{% extends "../layout.twig" %}
+
+{% block content %}
+<style>
+    .hub-header { text-align: center; margin-bottom: 30px; }
+    .unread { border-left: 4px solid var(--accent-red) !important; }
+    .read { opacity: 0.6; } 
+    
+    .notif-list-container {
+        flex: 1;
+        overflow-y: auto;
+        padding-right: 15px;
+        margin-bottom: 10px;
+        max-height: 60vh; 
+    }
+
+    .notif-list-container::-webkit-scrollbar { width: 6px; }
+    .notif-list-container::-webkit-scrollbar-track { background: transparent; }
+    .notif-list-container::-webkit-scrollbar-thumb { 
+        background: var(--border-color); 
+        border-radius: 10px; 
+    }
+
+    .notif-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        padding: 18px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        position: relative;
+        transition: transform 0.2s;
+    }
+
+    .notif-header { display: flex; justify-content: space-between; align-items: flex-start; }
+    .notif-title { margin: 0; color: var(--text-heading); font-size: 1.05rem; font-weight: 700; }
+    .notif-timestamp { font-size: 0.75rem; color: var(--text-muted); }
+    .notif-message { margin: 12px 0 0 0; font-size: 0.95rem; color: var(--text-main); line-height: 1.5; }
+    
+    .delete-notif-btn { background:none; border:none; color:var(--text-muted); cursor:pointer; font-size: 1.2rem; padding:0 5px; }
+    .mark-read-btn { background:none; border:none; color:var(--accent-red); font-size: 0.75rem; font-weight:bold; cursor:pointer; text-transform:uppercase; padding:0; }
+
+    .global-actions { display: flex; justify-content: center; gap: 20px; margin-bottom: 25px; }
+    .action-btn-reverted {
+        background: none; border: none; color: var(--accent-red);
+        font-size: 0.7rem; font-weight: bold; cursor: pointer;
+        text-transform: uppercase; letter-spacing: 0.05rem;
+    }
+    
+    .info-banner {
+        background: var(--btn-secondary-bg);
+        border: 1px dashed var(--border-color);
+        padding: 10px; border-radius: 6px;
+        text-align: center; font-size: 0.8rem;
+        color: var(--text-muted); margin-bottom: 30px;
+    }
+
+    .secondary-btn { text-decoration: none !important; display: inline-block; }
+</style>
+
+<div class="container" style="max-width: 650px; margin: 20px auto; padding: 0 20px; display: flex; flex-direction: column; max-height: 90vh;">
+    <div class="hub-header">
+        <h2 style="color: var(--text-heading); margin-bottom: 10px;">Notification Hub</h2>
+        <div class="global-actions">
+            <form action="/notifications/mark-all-as-read" method="POST" style="margin:0;">
+                <input type="hidden" name="redirect" value="/notifications">
+                <button type="submit" class="action-btn-reverted">✓ Mark All Read</button>
+            </form>
+            <form action="/notifications/delete-all" method="POST" style="margin:0;" onsubmit="return confirm('Delete all notifications?')">
+                <button type="submit" class="action-btn-reverted">🗑 Delete All</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="info-banner">
+        Notifications are automatically cleared after 30 days.
+    </div>
+
+    <div class="notif-list-container">
+        <div class="notif-list">
+            {% if notifications|length > 0 %}
+                {% for n in notifications %}
+                    <div class="notif-card {{ n.is_read ? 'read' : 'unread' }}">
+                        <div class="notif-header">
+                            <div>
+                                <h4 class="notif-title">{{ n.title }}</h4>
+                                <span class="notif-timestamp">{{ n.createdAt|date("m/d/Y, g:i:s A") }}</span>
+                            </div>
+                            <form action="/notifications/delete" method="POST" style="margin:0;">
+                                <input type="hidden" name="notification_id" value="{{ n.id }}">
+                                <button type="submit" class="delete-notif-btn" title="Delete" aria-label="Delete notification">×</button>
+                            </form>
+                        </div>
+                        
+                        <p class="notif-message">{{ n.message }}</p>
+                        
+                        {% if not n.is_read %}
+                            <form action="/notifications/mark-as-read" method="POST" style="margin-top: 15px;">
+                                <input type="hidden" name="notification_id" value="{{ n.id }}">
+                                <input type="hidden" name="redirect" value="/notifications">
+                                <button type="submit" class="mark-read-btn">Mark as read</button>
+                            </form>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p style="text-align:center; color:var(--text-muted); margin-top: 3rem;">No recent notifications.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div style="margin-top: 20px; text-align: center; border-top: 1px solid var(--border-color); padding-top: 20px; padding-bottom: 20px;">
+        <a href="/dashboard" class="secondary-btn" style="text-decoration: none;">Back to Dashboard</a>
+    </div>
+</div>
+{% endblock %}
