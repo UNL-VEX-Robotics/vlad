@@ -36,25 +36,6 @@
     border-color: var(--accent-red);
 }
 
-.notification-item {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-left: 4px solid var(--accent-red);
-    padding: 15px;
-    border-radius: 8px;
-    margin-bottom: 12px;
-    transition: opacity 0.2s;
-}
-
-.notifications-scroll-area::-webkit-scrollbar {
-    width: 6px;
-}
-
-.notifications-scroll-area::-webkit-scrollbar-thumb {
-    background: var(--border-color);
-    border-radius: 10px;
-}
-
 .modal-overlay {
     display: none;
     position: fixed;
@@ -174,34 +155,6 @@
 <div class="dashboard-wrapper">
     <div class="main-content">
         {% if error %}<div class="alert-box">{{ error }}</div>{% endif %}
-        
-        {% if notifications|length > 0 %}
-            <div class="notifications-container" style="margin-bottom: 40px; max-width: 600px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                    <label style="font-size:0.7rem; font-weight:bold; color:var(--text-muted); text-transform:uppercase; letter-spacing: 0.05rem;">
-                        Notifications ({{ notifications|length }})
-                    </label>
-                    <form action="/notifications/mark-all-as-read" method="POST" style="margin:0;">
-                        <button type="submit" style="background:none; border:none; color:var(--accent-red); font-size:0.7rem; font-weight:bold; cursor:pointer; text-transform:uppercase;">Clear All</button>
-                    </form>
-                </div>
-                <div class="notifications-scroll-area" style="max-height: 250px; overflow-y: auto; padding-right: 8px;">
-                    {% for n in notifications %}
-                        <div class="notification-item" style="background: var(--bg-card); border: 1px solid var(--border-color); border-left: 4px solid var(--accent-red); padding: 12px; border-radius: 6px; margin-bottom: 10px; position: relative;">
-                            <h4 style="margin: 0 0 3px 0; font-size: 0.9rem; color: var(--text-heading);">{{ n.title }}</h4>
-                            <p style="margin: 0; font-size: 0.85rem; color: var(--text-main); line-height:1.4;">{{ n.message }}</p>
-                            
-                            <form action="/notifications/mark-as-read" method="POST" style="margin-top: 8px;">
-                                <input type="hidden" name="notification_id" value="{{ n.id }}">
-                                <button type="submit" class="text-link-btn" style="background:none; border:none; color:var(--text-muted); font-size:0.75rem; cursor:pointer; text-decoration:underline; padding:0;">
-                                    Mark as read
-                                </button>
-                            </form>
-                        </div>
-                    {% endfor %}
-                </div>
-            </div>
-        {% endif %}
 
         <h2 style="color: var(--text-heading);">Dashboard</h2>
         

@@ -139,6 +139,71 @@
     .vlad-btn-secondary:hover { border-color: var(--accent-red); color: var(--accent-red); }
 
     .card { background: var(--bg-card); border: 1px solid var(--border-color); padding: 30px; border-radius: 12px; }
+
+    .nav-notification-wrapper {
+    position: relative;
+    display: inline-block;
+    margin-right: 20px;
+}
+
+.bell-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1.4rem;
+    cursor: pointer;
+    position: relative;
+    padding: 5px;
+    transition: color 0.2s;
+}
+
+.bell-btn:hover {
+    color: var(--accent-red);
+}
+
+.unread-dot {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 10px;
+    height: 10px;
+    background: var(--accent-red);
+    border-radius: 50%;
+    border: 2px solid var(--bg-card);
+}
+
+.notifications-dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    width: 350px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    z-index: 3000;
+    margin-top: 10px;
+    padding: 15px;
+}
+
+.notifications-dropdown.show {
+    display: block;
+}
+
+.notifications-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 12px;
+}
+
+.notif-scroll {
+    max-height: 400px;
+    overflow-y: auto;
+}
     </style>
 
     <script>
@@ -155,6 +220,51 @@
     <div class="top-nav">
         {% if session.user_name %}
             <div class="menu-container" style="position: relative;">
+            <div class="nav-notification-wrapper">
+                <button class="bell-btn" onclick="toggleNotifications(event)" aria-label="Notifications">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                    </svg>
+
+                    {% if notifications|length > 0 %}
+                        <span class="unread-dot"></span>
+                    {% endif %}
+                </button>
+
+                <div id="notifDropdown" class="notifications-dropdown">
+                    <div class="notifications-header">
+                        <span style="font-size: 0.75rem; font-weight: bold; color: var(--text-muted); text-transform: uppercase;">
+                            Notifications ({{ notifications|length }})
+                        </span>
+                        {% if notifications|length > 0 %}
+                            <form action="/notifications/mark-all-as-read" method="POST" style="margin:0;">
+                                <button type="submit" style="background:none; border:none; color:var(--accent-red); font-size:0.7rem; font-weight:bold; cursor:pointer;">CLEAR ALL</button>
+                            </form>
+                        {% endif %}
+                    </div>
+
+                    <div class="notif-scroll">
+                        {% if notifications|length > 0 %}
+                            {% for n in notifications %}
+                                <div class="notification-item" style="border-left: 3px solid var(--accent-red); padding: 10px; margin-bottom: 8px; background: rgba(255,255,255,0.02); border-radius: 4px;">
+                                    <h4 style="margin: 0 0 2px 0; font-size: 0.85rem; color: var(--text-heading);">{{ n.title }}</h4>
+                                    <p style="margin: 0; font-size: 0.8rem; color: var(--text-main); line-height: 1.3;">{{ n.message }}</p>
+                        
+                                    <form action="/notifications/mark-as-read" method="POST" style="margin-top: 5px;">
+                                        <input type="hidden" name="notification_id" value="{{ n.id }}">
+                                        <button type="submit" style="background:none; border:none; color:var(--text-muted); font-size:0.7rem; cursor:pointer; text-decoration:underline; padding:0;">
+                                            Mark as read
+                                        </button>
+                                    </form>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <p style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 20px 0;">No new notifications</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
                 <button class="profile-trigger" onclick="toggleMenu(event, 'top-profile-menu')">
                     Account: {{ session.user_name }} ▾
                 </button>
@@ -187,6 +297,20 @@
         document.addEventListener('click', () => {
             document.querySelectorAll('.dropdown-menu').forEach(m => m.style.display = 'none');
         });
+        function toggleNotifications(event) {
+    event.stopPropagation();
+    const dropdown = document.getElementById('notifDropdown');
+    dropdown.classList.toggle('show');
+    
+    // Close other menus if open
+    document.querySelectorAll('.dropdown-menu').forEach(m => m.style.display = 'none');
+}
+
+document.addEventListener('click', () => { 
+    document.querySelectorAll('.dropdown-menu').forEach(m => m.style.display = 'none'); 
+    const notifDropdown = document.getElementById('notifDropdown');
+    if (notifDropdown) notifDropdown.classList.remove('show');
+});
     </script>
 </body>
 </html>
