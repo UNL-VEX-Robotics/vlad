@@ -22,7 +22,7 @@ export const renderSettings = async (req, res) => {
 
         res.render("settings/settings", {
             title: "Settings",
-            user: { user_name: req.session.user_name, email: req.session.email },
+            user: req.session,
             settings: settings,
             version: pkg.version,
         });
