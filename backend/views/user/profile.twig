@@ -130,4 +130,71 @@
         {% endif %}
     </div>
 </div>
+{# Transfer Ownership Modal #}
+<div id="transferModal" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; justify-content: center; align-items: center;">
+    <div class="card" style="max-width: 400px; padding: 30px; text-align: center;">
+        <h3 style="color: var(--accent-red);">Transfer Ownership?</h3>
+        <p style="font-size: 0.9rem; color: var(--text-main); margin-bottom: 20px;">
+            This will make <strong>{{ profileUser.user_name }}</strong> the new Owner. You will be demoted to Admin. This cannot be undone.
+        </p>
+        <div style="display: flex; gap: 10px;">
+            <button type="button" class="secondary-btn" onclick="document.getElementById('transferModal').style.display='none'" style="flex:1;">Cancel</button>
+            <form action="/admin/transfer-ownership" method="POST" style="flex:1;">
+                <input type="hidden" name="user_id" value="{{ profileUser.id }}">
+                <button type="submit" class="vlad-btn-accent" style="width:100%; background: var(--accent-red); color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer;">Confirm</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+{# Remove Member Modal #}
+<div id="removeModal" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; justify-content: center; align-items: center;">
+    <div class="card" style="max-width: 400px; padding: 30px; text-align: center;">
+        <h3 style="color: var(--accent-red); margin-top: 0;">Remove Member?</h3>
+        <p style="font-size: 0.9rem; color: var(--text-main); margin-bottom: 20px;">
+            Are you sure you want to remove <strong>{{ profileUser.user_name }}</strong> from the team?
+        </p>
+        
+        <form action="/admin/remove-member" method="POST">
+            <input type="hidden" name="user_id" value="{{ profileUser.id }}">
+            
+            <div style="text-align: left; margin-bottom: 20px;">
+                <label style="font-size: 0.7rem; font-weight: bold; color: var(--text-muted); text-transform: uppercase;">Reason for Removal</label>
+                <textarea 
+                    name="reason" 
+                    placeholder="e.g. Project completion, inactivity, etc." 
+                    style="width: 100%; background: var(--bg-body); border: 1px solid var(--border-color); color: var(--text-main); padding: 10px; border-radius: 6px; font-size: 0.85rem; margin-top: 5px; resize: none; height: 80px;"
+                    required
+                ></textarea>
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+                <button type="button" class="secondary-btn" onclick="document.getElementById('removeModal').style.display='none'" style="flex:1;">Cancel</button>
+                <button type="submit" style="flex:1; background: var(--accent-red); color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold;">Confirm Removal</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function toggleMenu(event, menuId) {
+        event.stopPropagation();
+        const menu = document.getElementById(menuId);
+        const isVisible = menu.style.display === 'block';
+        
+        document.querySelectorAll('.dropdown-menu').forEach(m => m.style.display = 'none');
+        
+        menu.style.display = isVisible ? 'none' : 'block';
+    }
+
+    window.onclick = function(event) {
+        if (!event.target.matches('.manage-btn')) {
+            document.querySelectorAll('.dropdown-menu').forEach(m => m.style.display = 'none');
+        }
+        
+        if (event.target.classList.contains('modal-overlay')) {
+            event.target.style.display = 'none';
+        }
+    }
+</script>
 {% endblock %}

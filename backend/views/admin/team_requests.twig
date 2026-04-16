@@ -1,0 +1,127 @@
+{% extends "../layout.twig" %}
+
+{% block content %}
+<style>
+    .requests-container {
+        max-width: 700px; 
+        margin: 0 auto;
+        min-height: 400px;
+    }
+
+    .request-panel {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        padding: 2rem; /* Keeping the spacious card padding */
+        margin-bottom: 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: var(--shadow-sm);
+        animation: fadeIn 0.3s ease-in-out;
+        transition: transform 0.2s;
+    }
+    
+    .request-panel:hover {
+        border-color: var(--text-muted);
+    }
+
+    .empty-state {
+        justify-content: center;
+        border: 1px dashed var(--border-color);
+        background: transparent;
+        box-shadow: none;
+        padding: 4rem 2rem;
+    }
+
+    .request-actions {
+        display: flex;
+        gap: 10px; 
+    }
+
+    .action-btn {
+        width: auto !important;
+        /* Shrinking the buttons: reduced from 12px 24px to 8px 18px */
+        padding: 8px 18px !important; 
+        /* Slightly smaller text for better proportion */
+        font-size: 0.75rem !important;
+        cursor: pointer;
+        border-radius: 6px; /* Sharper corners for smaller buttons */
+        border: none;
+        font-weight: 700;
+        transition: all 0.2s;
+        text-transform: uppercase;
+        letter-spacing: 0.03rem;
+    }
+    
+    .action-btn:hover {
+        filter: brightness(1.1);
+        transform: translateY(-1px);
+    }
+
+    .approve { background: #10b981 !important; color: white !important; }
+    .reject { background: var(--accent-red) !important; color: white !important; }
+
+    .back-nav {
+        max-width: 700px;
+        margin: 2rem auto 1rem;
+        text-align: left;
+    }
+
+    .user-meta {
+        margin-top: 4px;
+        font-size: 0.9rem;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 500px) {
+        .request-panel { flex-direction: column; text-align: center; gap: 20px; }
+        .request-actions { width: 100%; justify-content: center; }
+    }
+</style>
+
+<div class="back-nav">
+    <a href="/dashboard" style="text-decoration:none; color:var(--text-muted); font-weight:700; font-size:0.8rem; display: flex; align-items: center; gap: 5px; transition: color 0.2s;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        BACK TO DASHBOARD
+    </a>
+</div>
+
+<h2 style="text-align:center; margin-bottom: 3rem; color: var(--text-heading); font-size: 1.8rem;">Team Access Requests</h2>
+
+<div class="requests-container">
+    {% if requests|length > 0 %}
+        {% for r in requests %}
+            <div class="request-panel">
+                <div class="request-details">
+                    <div class="info-label" style="font-size: 0.75rem; font-weight: 800; color: var(--accent-red); text-transform: uppercase; letter-spacing: 0.1rem; margin-bottom: 4px;">Pending Member</div>
+                    <div class="info-value" style="font-size: 1.2rem; font-weight: 700; color: var(--text-heading);">{{ r.user_name }}</div>
+                    <div class="user-meta" style="color: var(--text-muted);">{{ r.email }}</div>
+                </div>
+                
+                <div class="request-actions">
+                    <form action="/admin/approve-member" method="POST" style="margin:0;">
+                        <input type="hidden" name="user_id" value="{{ r.id }}">
+                        <button type="submit" class="action-btn approve">Approve</button>
+                    </form>
+                    <form action="/admin/reject-member" method="POST" style="margin:0;">
+                        <input type="hidden" name="user_id" value="{{ r.id }}">
+                        <button type="submit" class="action-btn reject">Reject</button>
+                    </form>
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="request-panel empty-state">
+            <div style="text-align: center;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--border-color)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 15px;"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="18" y1="8" x2="23" y2="13"></line><line x1="23" y1="8" x2="18" y2="13"></line></svg>
+                <p style="margin:0; color:var(--text-muted); font-weight: 500;">No pending requests at this time.</p>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

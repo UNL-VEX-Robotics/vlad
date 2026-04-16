@@ -1,4 +1,5 @@
 import db from "../db.js";
+import { Op } from "sequelize";
 import { ROLES } from "../utils/constants.js";
 import logger from "../utils/logger.js";
 
@@ -34,11 +35,24 @@ export const renderDashboard = async (req, res) => {
         const teamId = user.team_id;
         let members = [];
         let subteams = [];
+        let requests = [];
 
         if (teamId) {
             // Fetch members
             members = await db.user_account.findAll({
-                where: { team_id: teamId },
+                where: {
+                    team_id: teamId,
+                    role: {
+                        [Op.gt]: ROLES.PENDING,
+                    },
+                },
+                attributes: ["id", "user_name", "role"],
+                order: [["role", "DESC"]],
+            });
+
+            // Fetch pending members
+            requests = await db.user_account.findAll({
+                where: { team_id: teamId, role: ROLES.PENDING },
                 attributes: ["id", "user_name", "role"],
                 order: [["role", "DESC"]],
             });
@@ -56,6 +70,7 @@ export const renderDashboard = async (req, res) => {
             members: members.map((m) => m.get({ plain: true })),
             subteams: subteams.map((s) => s.get({ plain: true })),
             ROLES: ROLES,
+            requests: requests,
             error: req.query.error,
         });
     } catch (err) {

@@ -94,10 +94,12 @@
 {% block content %}
 <style>
     .dashboard-wrapper { 
-        display: flex; 
-        flex-direction: row; 
-        width: 100%;
-        min-height: 80vh;
+    display: flex; 
+    flex-direction: row; 
+    width: 100%;
+    /* Use 100vh minus the height of your navbar (assuming ~60px) */
+    min-height: calc(100vh - 60px); 
+    align-items: stretch; /* This forces children to be equal height */
     }
 
     .main-content { 
@@ -166,11 +168,23 @@
     border-bottom: none;
 }
 
+
+@media (min-width: 769px) {
+    .sidebar {
+        position: sticky;
+        top: 60px; 
+        height: calc(100vh - 60px);
+        overflow-y: auto; 
+    }
+}
 .sidebar { 
     width: 300px; 
     border-left: 1px solid var(--border-color); 
     padding: 30px 20px;
     background: var(--bg-card);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
 }
     .dropdown-item-link {
     display: block;
@@ -225,6 +239,40 @@
     box-shadow: 0 4px 12px rgba(0,0,0,0.5);
     margin-top: 5px; 
 }
+
+/* Red dot for pending requests */
+.request-dot {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 10px;
+    height: 10px;
+    background-color: var(--accent-red);
+    border-radius: 50%;
+    border: 2px solid var(--bg-card);
+    box-shadow: 0 0 5px rgba(255, 71, 71, 0.5);
+}
+
+form[action="/admin/team-requests"] {
+    position: relative;
+    display: block;
+}
+
+.dot-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    border-radius: 4px;
+}
+
+.dot-btn:hover {
+    background: var(--bg-body);
+    color: var(--text-heading);
+}
 </style>
 
 <div id="deleteModal" class="modal-overlay">
@@ -260,12 +308,19 @@
         {% endif %}
 
         {% if not user.team %}
-            <div class="card" style="margin:0; max-width:400px;">
-                <h3>Get Started</h3>
-                <form action="/auth/create-team" method="GET"><button type="submit">Create Team</button></form>
-                <form action="/auth/join-team" method="GET"><button type="submit" class="secondary-btn" style="margin-top:10px;">Join Team</button></form>
-            </div>
-        {% else %}
+    <div class="card" style="margin:0; max-width:400px; padding: 25px;">
+        <h3 style="margin-top:0; color: var(--text-heading);">Get Started</h3>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px;">You aren't part of a team yet. Create one or join an existing one.</p>
+        
+        <form action="/auth/create-team" method="GET">
+            <button type="submit" class="vlad-btn-accent" style="width: 100%;">Create Team</button>
+        </form>
+        
+        <form action="/auth/join-team" method="GET" style="margin-top:10px;">
+            <button type="submit" class="secondary-btn" style="width: 100%;">Join Team</button>
+        </form>
+    </div>
+{% else %}
             <h3 style="color: var(--text-muted); font-size: 0.9rem; text-transform: uppercase;">Subteams</h3>
             <div class="subteam-grid">
                 {% for s in subteams %}
@@ -304,62 +359,91 @@
     </div>
 
     <div class="sidebar">
-        <h3 style="margin-top:0; font-size: 1.1rem; color: var(--text-heading); margin-bottom: 5px;">
-            {{ user.team|default("No Team") }}
-        </h3>
-        
-        {% if user.role > ROLES.LEAD %}
-            <form action="/admin/team-requests" method="GET">
-                <button type="submit" class="manage-btn">Manage Requests</button>
-            </form>
-        {% endif %}
+    <h3 style="margin-top:0; font-size: 1.1rem; color: var(--text-heading); margin-bottom: 5px;">
+        {{ user.team|default("No Team") }}
+    </h3>
+    
+    {% if user.role > ROLES.LEAD %}
+        {# We assume your backend passes 'requests' or 'pendingCount' #}
+        {% set pendingCount = requests|length %}
+        <form action="/admin/team-requests" method="GET" style="position: relative;">
+            <button type="submit" class="secondary-btn" style="width: 100%; text-align: center; padding: 10px;">
+                Manage Requests
+                {% if pendingCount > 0 %}
+                    <span class="request-dot"></span>
+                {% endif %}
+            </button>
+        </form>
+    {% endif %}
 
-        <hr style="margin: 20px 0; border: 0; border-top: 1px solid var(--border-color);">
-        
-        <label style="font-size: 0.75rem; font-weight: bold; color: var(--text-muted);">MEMBERS</label>
-        <ul style="list-style:none; padding:0; margin-top: 10px;">
-            {% if members|length > 0 %}
-                {% for m in members %}
-                    <li class="member-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                        <span>{{ m.user_name }} <small style="color:var(--text-muted); font-size:0.7rem;">
-                            ({% if m.role == ROLES.OWNER %}Owner{% elseif m.role == ROLES.ADMIN %}Admin{% elseif m.role == ROLES.LEAD %}Lead{% else %}Member{% endif %})
-                        </small></span>
-                        <div class="menu-container">
-                            <button class="dot-btn" onclick="toggleMenu(event, 'menu-{{ m.id }}')">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <circle cx="12" cy="12" r="1"></circle>
-                                    <circle cx="12" cy="5" r="1"></circle>
-                                    <circle cx="12" cy="19" r="1"></circle>
-                                </svg>
-                            </button>
-                            <div id="menu-{{ m.id }}" class="dropdown-menu">
-                                <a href="/profile?user_id={{ m.id }}" class="dropdown-item-link">View Profile</a>
-                                
-                                {% if user.role >= ROLES.ADMIN and m.id != user.user_id %}
-                                    {% if m.role < ROLES.ADMIN %}
-                                        <form action="/admin/change-role" method="POST" style="margin:0;">
-                                            <input type="hidden" name="user_id" value="{{ m.id }}">
-                                            <input type="hidden" name="new_role" value="{{ m.role + 1 }}">
-                                            <button type="submit">Promote</button>
-                                        </form>
-                                    {% endif %}
-                                    {% if m.role > ROLES.MEMBER and user.role > m.role %}
-                                        <form action="/admin/change-role" method="POST" style="margin:0;">
-                                            <input type="hidden" name="user_id" value="{{ m.id }}">
-                                            <input type="hidden" name="new_role" value="{{ m.role - 1 }}">
-                                            <button type="submit" style="color:var(--accent-red);">Demote</button>
-                                        </form>
-                                    {% endif %}
-                                {% endif %}
-                            </div>
-                        </div>
-                    </li>
-                {% endfor %}
-            {% else %}
-                <li style="color: var(--text-muted); font-size:0.9rem;">No members visible</li>
-            {% endif %}
-        </ul>
-    </div>
+    <hr style="margin: 20px 0; border: 0; border-top: 1px solid var(--border-color);">
+    
+    <label style="font-size: 0.75rem; font-weight: bold; color: var(--text-muted);">MEMBERS</label>
+    <ul style="list-style:none; padding:0; margin-top: 10px;">
+    {% set activeMembers = 0 %}
+    {% for m in members %}
+        {% if m.role > ROLES.PENDING %}
+            {% set activeMembers = activeMembers + 1 %}
+            {% set is_me = (m.id == user.user_id) %}
+
+            <li class="member-row">
+                <span style="font-size: 0.9rem; color: var(--text-main);">
+                    {{ m.user_name }} 
+                    {% if is_me %}
+                        <span style="color: var(--accent-red); font-weight: bold;">(You)</span>
+                    {% endif %}
+                    
+                    <small style="color:var(--text-muted); font-size:0.7rem; display: block;">
+                        {% if m.role == ROLES.OWNER %}Owner
+                        {% elseif m.role == ROLES.ADMIN %}Admin
+                        {% elseif m.role == ROLES.LEAD %}Lead
+                        {% else %}Member{% endif %}
+                    </small>
+                </span>
+
+                <div class="menu-container">
+                    <button class="dot-btn" onclick="toggleMenu(event, 'menu-{{ m.id }}')">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="1"></circle>
+                            <circle cx="12" cy="5" r="1"></circle>
+                            <circle cx="12" cy="19" r="1"></circle>
+                        </svg>
+                    </button>
+                    <div id="menu-{{ m.id }}" class="dropdown-menu">
+                        <a href="/profile?user_id={{ m.id }}" class="dropdown-item-link">View Profile</a>
+                        
+                        {% if user.role >= ROLES.ADMIN and not is_me %}
+                            <hr style="border:0; border-top:1px solid var(--border-color); margin: 5px 0;">
+                            
+                            {# Promote button #}
+                            {% if m.role < ROLES.ADMIN %}
+                                <form action="/admin/change-role" method="POST" style="margin:0;">
+                                    <input type="hidden" name="user_id" value="{{ m.id }}">
+                                    <input type="hidden" name="action" value="promote">
+                                    <button type="submit">Promote</button>
+                                </form>
+                            {% endif %}
+
+                            {# Demote button #}
+                            {% if m.role > ROLES.MEMBER %}
+                                <form action="/admin/change-role" method="POST" style="margin:0;">
+                                    <input type="hidden" name="user_id" value="{{ m.id }}">
+                                    <input type="hidden" name="action" value="demote">
+                                    <button type="submit" style="color: var(--accent-red);">Demote</button>
+                                </form>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+            </li>
+        {% endif %}
+    {% endfor %}
+
+    {% if activeMembers == 0 %}
+        <li style="color: var(--text-muted); font-size:0.9rem; padding: 10px 0;">No active members</li>
+    {% endif %}
+</ul>
+</div>
 </div>
 
 <script>

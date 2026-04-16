@@ -1,8 +1,6 @@
 import db from "../db.js";
 import { ROLES } from "../utils/constants.js";
 import logger from "../utils/logger.js";
-import { withLayout } from "../views/layout.js";
-import { teamRequestsPage } from "../views/admin/admin.view.js";
 
 /**
  * Renders the user Team Requests page.
@@ -25,8 +23,10 @@ export const renderTeamRequests = async (req, res) => {
             ],
         });
 
-        const content = teamRequestsPage(users.map((u) => u.get({ plain: true })));
-        res.send(withLayout("Team Requests", content, req));
+        return res.render("admin/team_requests", {
+            title: "Team Requests",
+            requests: users,
+        });
     } catch (err) {
         logger.error(`Error rendering team requests page:${err}`);
     }
@@ -112,6 +112,9 @@ export async function removeUserFromTeam(req, res) {
  */
 export async function changeUserRole(req, res) {
     const { user_id, new_role } = req.body;
+    if (req.session.user_id === user_id) {
+        res.redirect("/dashboard?error=Unable%20to%20Promote%20or%20Demote%20Yourself");
+    }
     try {
         if (req.session.role < ROLES.ADMIN) {
             return res.redirect("/dashboard?error=Insufficient%20Permissions");
