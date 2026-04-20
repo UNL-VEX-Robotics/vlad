@@ -1,0 +1,108 @@
+{% extends "../layout.twig" %}
+
+{% block content %}
+<style>
+    .auth-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 85vh; 
+        padding: 40px 20px;
+    }
+
+    .auth-card {
+        width: 100%;
+        max-width: 500px; 
+        padding: 40px !important; 
+    }
+
+    .alert-box {
+        background-color: var(--alert-bg);
+        color: var(--alert-text);
+        border: 1px solid var(--alert-border);
+        padding: 12px;
+        border-radius: 6px;
+        margin-bottom: 20px;
+        font-size: 0.9rem;
+        text-align: center;
+        font-weight: 500;
+    }
+
+    .btn {
+        display: block;
+        width: 100%;
+        padding: 12px;
+        border-radius: 6px;
+        font-size: 1rem;
+        font-weight: 600;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-sizing: border-box;
+        text-decoration: none;
+        border: none;
+    }
+
+    .btn-primary {
+        background-color: var(--accent-red);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background-color: var(--accent-hover);
+    }
+
+    .btn-secondary {
+        background-color: var(--btn-secondary-bg);
+        color: var(--btn-secondary-text);
+        margin-top: 15px;
+    }
+
+    .btn-secondary:hover {
+        filter: brightness(0.95);
+    }
+
+    /* INPUT STYLING */
+    input:not([type="submit"]) {
+        width: 100%;
+        padding: 12px;
+        margin-top: 8px;
+        margin-bottom: 1.5rem;
+        box-sizing: border-box;
+        background-color: var(--input-bg);
+        color: var(--text-main);
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+    }
+
+    .footer-note {
+        font-size: 0.85rem; 
+        color: var(--text-muted); 
+        text-align: center; 
+        margin-top: 20px;
+    }
+</style>
+
+<div class="auth-container">
+    <div class="card auth-card">
+        <form method="POST" action="/auth/join-team">
+            <h2 style="margin-top: 0; margin-bottom: 25px; color: var(--text-heading); text-align: center;">Join Team</h2>
+            
+            {% if error %}
+                <div class="alert-box">{{ error }}</div>
+            {% endif %}
+            
+            <label style="color: var(--text-label); font-weight: 500;">Search Team Name</label>
+            <input name="team_name" placeholder="Enter exact team name" required />
+            
+            <input type="submit" value="Send Join Request" class="btn btn-primary" />
+        </form>
+        
+        <a href="/dashboard" class="btn btn-secondary">Back</a>
+        
+        <p class="footer-note">
+            Note: You will need to be accepted by the team lead.
+        </p>
+    </div>
+</div>
+{% endblock %}

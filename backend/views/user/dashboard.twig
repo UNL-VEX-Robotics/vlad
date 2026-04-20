@@ -1,4 +1,5 @@
 {% extends "../layout.twig" %}
+
 {% block top_bar_notifications %}
 <style>
 [id*="top_bar"], .nav-right-section, header .container { 
@@ -44,6 +45,7 @@
     border: 2px solid var(--bg-body);
 }
 </style>
+
 <div class="nav-notification-wrapper">
     <button class="bell-btn" onclick="toggleNotifications(event)" aria-label="Notifications">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -94,185 +96,177 @@
 {% block content %}
 <style>
     .dashboard-wrapper { 
-    display: flex; 
-    flex-direction: row; 
-    width: 100%;
-    /* Use 100vh minus the height of your navbar (assuming ~60px) */
-    min-height: calc(100vh - 60px); 
-    align-items: stretch; /* This forces children to be equal height */
+        display: flex; 
+        flex-direction: row; 
+        width: 100%;
+        min-height: calc(100vh - 60px); 
+        align-items: stretch;
     }
 
     .main-content { 
         flex: 1; 
         padding: 40px; 
     }
-    
-.subteam-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 20px;
-    margin-top: 20px;
-}
 
-.subteam-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    padding: 20px;
-    border-radius: 12px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    transition: transform 0.2s, border-color 0.2s;
-}
-
-.subteam-card:hover {
-    border-color: var(--accent-red);
-}
-
-.modal-overlay {
-    display: none;
-    position: fixed;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0, 0, 0, 0.85); /* Darker overlay for better focus */
-    z-index: 2000;
-    justify-content: center;
-    align-items: center;
-    backdrop-filter: blur(4px); /* Adds a modern frosted glass effect */
-}
-
-.modal-content {
-    background: var(--bg-card);
-    padding: 30px;
-    border-radius: 16px;
-    border: 1px solid var(--border-color);
-    max-width: 450px;
-    width: 90%;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-}
-
-.modal-btns {
-    display: flex;
-    gap: 12px;
-    margin-top: 25px;
-}
-
-.member-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 0;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
-}
-
-.member-row:last-child {
-    border-bottom: none;
-}
-
-
-@media (min-width: 769px) {
-    .sidebar {
-        position: sticky;
-        top: 60px; 
-        height: calc(100vh - 60px);
-        overflow-y: auto; 
-    }
-}
-.sidebar { 
-    width: 300px; 
-    border-left: 1px solid var(--border-color); 
-    padding: 30px 20px;
-    background: var(--bg-card);
-    display: flex;
-    flex-direction: column;
-    flex-shrink: 0;
-}
-    .dropdown-item-link {
-    display: block;
-    width: 100%;
-    padding: 8px 12px;
-    font-size: 0.85rem;
-    color: var(--text-main);
-    text-decoration: none;
-    box-sizing: border-box;
-    transition: background 0.2s;
+    /* UNIFIED BUTTON SYSTEM */
+    .btn {
+        display: block;
+        width: 100%;
+        padding: 12px;
+        border-radius: 6px;
+        font-size: 1rem;
+        font-weight: 600;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-sizing: border-box;
+        text-decoration: none;
+        border: none;
     }
 
-    .dropdown-item-link:hover {
+    .btn-primary {
+        background-color: var(--accent-red);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background-color: var(--accent-hover);
+    }
+
+    .btn-secondary {
+        background-color: var(--btn-secondary-bg);
+        color: var(--btn-secondary-text);
+    }
+
+    .btn-secondary:hover {
+        filter: brightness(0.95);
+    }
+
+    /* SUBTEAM STYLES */
+    .subteam-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 20px;
+        margin-top: 20px;
+    }
+
+    .subteam-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        padding: 20px;
+        border-radius: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: transform 0.2s, border-color 0.2s;
+    }
+
+    .subteam-card:hover {
+        border-color: var(--accent-red);
+    }
+
+    /* SIDEBAR */
+    .sidebar { 
+        width: 300px; 
+        border-left: 1px solid var(--border-color); 
+        padding: 30px 20px;
+        background: var(--bg-card);
+        display: flex;
+        flex-direction: column;
+        flex-shrink: 0;
+    }
+
+    .member-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .member-row:last-child {
+        border-bottom: none;
+    }
+
+    /* MODALS & DROPDOWNS */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0, 0, 0, 0.85);
+        z-index: 2000;
+        justify-content: center;
+        align-items: center;
+        backdrop-filter: blur(4px);
+    }
+
+    .modal-content {
+        background: var(--bg-card);
+        padding: 30px;
+        border-radius: 16px;
+        border: 1px solid var(--border-color);
+        max-width: 450px;
+        width: 90%;
+    }
+
+    .dropdown-menu {
+        display: none;
+        position: absolute;
+        top: 100%;
+        right: 0; 
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 5px 0;
+        min-width: 160px;
+        z-index: 1000;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    }
+
+    .dropdown-item-link, .dropdown-menu button {
+        display: block;
+        width: 100%;
+        padding: 8px 12px;
+        font-size: 0.85rem;
+        color: var(--text-main);
+        text-decoration: none;
+        background: none;
+        border: none;
+        text-align: left;
+        cursor: pointer;
+    }
+
+    .dropdown-item-link:hover, .dropdown-menu button:hover {
         background: var(--bg-body);
     }
 
-    .dropdown-menu button { width: 100%; text-align: left; background: none; border: none; padding: 8px 12px; font-size: 0.85rem; cursor: pointer; color: var(--text-main); }
-    .dropdown-menu button:hover { background: var(--bg-body); }
     .alert-box { background: var(--accent-red); color: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
-    
+
     @media (max-width: 768px) {
         .dashboard-wrapper { flex-direction: column; }
         .sidebar { width: 100%; border-left: none; border-top: 1px solid var(--border-color); }
     }
 
-    .modal-overlay {
-        display: none;
-        position: fixed;
-        top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0, 0, 0, 0.7);
-        z-index: 1000;
-        justify-content: center;
-        align-items: center;
+    .request-dot {
+        position: absolute;
+        top: -4px;
+        right: -4px;
+        width: 10px;
+        height: 10px;
+        background-color: var(--accent-red);
+        border-radius: 50%;
+        border: 2px solid var(--bg-card);
     }
 
-    .menu-container {
-    position: relative; 
-    display: inline-block;
-}
-
-.dropdown-menu {
-    display: none;
-    position: absolute;
-    top: 100%;
-    right: 0; 
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 5px 0;
-    min-width: 160px;
-    z-index: 1000;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-    margin-top: 5px; 
-}
-
-/* Red dot for pending requests */
-.request-dot {
-    position: absolute;
-    top: -4px;
-    right: -4px;
-    width: 10px;
-    height: 10px;
-    background-color: var(--accent-red);
-    border-radius: 50%;
-    border: 2px solid var(--bg-card);
-    box-shadow: 0 0 5px rgba(255, 71, 71, 0.5);
-}
-
-form[action="/admin/team-requests"] {
-    position: relative;
-    display: block;
-}
-
-.dot-btn {
-    background: none;
-    border: none;
-    color: var(--text-muted);
-    cursor: pointer;
-    padding: 4px;
-    display: flex;
-    align-items: center;
-    border-radius: 4px;
-}
-
-.dot-btn:hover {
-    background: var(--bg-body);
-    color: var(--text-heading);
-}
+    .dot-btn {
+        background: none;
+        border: none;
+        color: var(--text-muted);
+        cursor: pointer;
+        padding: 4px;
+        display: flex;
+        align-items: center;
+    }
 </style>
 
 <div id="deleteModal" class="modal-overlay">
@@ -281,11 +275,11 @@ form[action="/admin/team-requests"] {
         <p style="color: var(--text-main); font-size: 0.9rem;">
             Are you sure you want to delete subteam <strong id="deleteSubteamName"></strong>?
         </p>
-        <div class="modal-btns">
-            <button class="secondary-btn" onclick="closeModal()">Cancel</button>
+        <div style="display: flex; gap: 12px; margin-top: 25px;">
+            <button class="btn btn-secondary" onclick="closeModal()" style="flex:1;">Cancel</button>
             <form id="deleteForm" action="/subteam/delete-subteam" method="POST" style="margin:0; flex:1;">
                 <input type="hidden" name="id" id="deleteSubteamId">
-                <button type="submit" style="background: var(--accent-red); color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; width: 100%;">Delete</button>
+                <button type="submit" class="btn btn-primary">Delete</button>
             </form>
         </div>
     </div>
@@ -297,7 +291,7 @@ form[action="/admin/team-requests"] {
 
         <h2 style="color: var(--text-heading);">Dashboard</h2>
         
-        {% if user.team is not null and user.role == 0 %}
+        {% if user.team is not null and user.role == ROLES.PENDING %}
             <div style="display: flex; align-items: center; gap: 10px; background: var(--badge-pending-bg); border: 1px solid var(--border-color); padding: 15px; border-radius: 8px; color: var(--badge-pending-text); margin-bottom: 20px;">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="10"></circle>
@@ -308,142 +302,127 @@ form[action="/admin/team-requests"] {
         {% endif %}
 
         {% if not user.team %}
-    <div class="card" style="margin:0; max-width:400px; padding: 25px;">
-        <h3 style="margin-top:0; color: var(--text-heading);">Get Started</h3>
-        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px;">You aren't part of a team yet. Create one or join an existing one.</p>
-        
-        <form action="/auth/create-team" method="GET">
-            <button type="submit" class="vlad-btn-accent" style="width: 100%;">Create Team</button>
-        </form>
-        
-        <form action="/auth/join-team" method="GET" style="margin-top:10px;">
-            <button type="submit" class="secondary-btn" style="width: 100%;">Join Team</button>
-        </form>
-    </div>
-{% else %}
-            <h3 style="color: var(--text-muted); font-size: 0.9rem; text-transform: uppercase;">Subteams</h3>
-            <div class="subteam-grid">
-                {% for s in subteams %}
-                    <div class="subteam-card">
-                        <div style="font-weight: 700; color: var(--text-heading);">{{ s.name }}</div>
-                        {% if user.role > ROLES.LEAD %}
-                            <div class="menu-container">
-                                <button class="dot-btn" onclick="toggleMenu(event, 'sub-{{ s.id }}')">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <circle cx="12" cy="12" r="1"></circle>
-                                        <circle cx="12" cy="5" r="1"></circle>
-                                        <circle cx="12" cy="19" r="1"></circle>
-                                    </svg>
-                                </button>
-                                <div id="sub-{{ s.id }}" class="dropdown-menu">
-                                    <form action="/subteam/edit-subteam" method="GET" style="margin:0;">
-                                        <input type="hidden" name="id" value="{{ s.id }}">
-                                        <button type="submit">Edit Name</button>
-                                    </form>
-                                    <button type="button" onclick="confirmDelete('{{ s.id }}', '{{ s.name }}')" style="color:var(--accent-red);">Delete</button>
-                                </div>
-                            </div>
-                        {% endif %}
-                    </div>
-                {% endfor %}
-
-                {% if user.role > ROLES.LEAD %}
-                    <a href="/subteam/create-subteam" style="text-decoration:none;">
-                        <div class="subteam-card" style="border: 2px dashed var(--border-color); justify-content:center; color: var(--accent-red); cursor:pointer;">
-                            + Create Subteam
-                        </div>
-                    </a>
-                {% endif %}
+            <div class="card" style="margin:0; max-width:400px; padding: 25px;">
+                <h3 style="margin-top:0; color: var(--text-heading);">Get Started</h3>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px;">You aren't part of a team yet. Create one or join an existing one.</p>
+                <a href="/auth/create-team" class="btn btn-primary" style="margin-bottom:10px;">Create Team</a>
+                <a href="/auth/join-team" class="btn btn-secondary">Join Team</a>
             </div>
+        {% else %}
+            {% if user.role > ROLES.PENDING %}
+                <h3 style="color: var(--text-muted); font-size: 0.9rem; text-transform: uppercase;">Subteams</h3>
+                <div class="subteam-grid">
+                    {% for s in subteams %}
+                        <div class="subteam-card">
+                            <div style="font-weight: 700; color: var(--text-heading);">{{ s.name }}</div>
+                            {% if user.role > ROLES.LEAD %}
+                                <div style="position: relative;">
+                                    <button class="dot-btn" onclick="toggleMenu(event, 'sub-{{ s.id }}')">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle>
+                                        </svg>
+                                    </button>
+                                    <div id="sub-{{ s.id }}" class="dropdown-menu">
+                                        <form action="/subteam/edit-subteam" method="GET" style="margin:0;">
+                                            <input type="hidden" name="id" value="{{ s.id }}">
+                                            <button type="submit">Edit Name</button>
+                                        </form>
+                                        <button type="button" onclick="confirmDelete('{{ s.id }}', '{{ s.name }}')" style="color:var(--accent-red);">Delete</button>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+
+                    {% if user.role > ROLES.LEAD %}
+                        <a href="/subteam/create-subteam" style="text-decoration:none;">
+                            <div class="subteam-card" style="border: 2px dashed var(--border-color); justify-content:center; color: var(--accent-red); cursor:pointer;">
+                                + Create Subteam
+                            </div>
+                        </a>
+                    {% endif %}
+                </div>
+            {% else %}
+                <div style="text-align: center; padding: 40px; border: 1px dashed var(--border-color); border-radius: 12px; margin-top: 20px;">
+                    <p style="color: var(--text-muted);">Access to subteams will be available once approved.</p>
+                </div>
+            {% endif %}
         {% endif %}
     </div>
 
     <div class="sidebar">
-    <h3 style="margin-top:0; font-size: 1.1rem; color: var(--text-heading); margin-bottom: 5px;">
-        {{ user.team|default("No Team") }}
-    </h3>
-    
-    {% if user.role > ROLES.LEAD %}
-        {# We assume your backend passes 'requests' or 'pendingCount' #}
-        {% set pendingCount = requests|length %}
-        <form action="/admin/team-requests" method="GET" style="position: relative;">
-            <button type="submit" class="secondary-btn" style="width: 100%; text-align: center; padding: 10px;">
+        <h3 style="margin-top:0; font-size: 1.1rem; color: var(--text-heading); margin-bottom: 5px;">
+            {{ user.team|default("No Team") }}
+        </h3>
+        
+        {% if user.role > ROLES.LEAD %}
+            {% set pendingCount = requests|length %}
+            <a href="/admin/team-requests" class="btn btn-secondary" style="position: relative; font-size: 0.85rem; padding: 8px;">
                 Manage Requests
                 {% if pendingCount > 0 %}
                     <span class="request-dot"></span>
                 {% endif %}
-            </button>
-        </form>
-    {% endif %}
-
-    <hr style="margin: 20px 0; border: 0; border-top: 1px solid var(--border-color);">
-    
-    <label style="font-size: 0.75rem; font-weight: bold; color: var(--text-muted);">MEMBERS</label>
-    <ul style="list-style:none; padding:0; margin-top: 10px;">
-    {% set activeMembers = 0 %}
-    {% for m in members %}
-        {% if m.role > ROLES.PENDING %}
-            {% set activeMembers = activeMembers + 1 %}
-            {% set is_me = (m.id == user.user_id) %}
-
-            <li class="member-row">
-                <span style="font-size: 0.9rem; color: var(--text-main);">
-                    {{ m.user_name }} 
-                    {% if is_me %}
-                        <span style="color: var(--accent-red); font-weight: bold;">(You)</span>
-                    {% endif %}
-                    
-                    <small style="color:var(--text-muted); font-size:0.7rem; display: block;">
-                        {% if m.role == ROLES.OWNER %}Owner
-                        {% elseif m.role == ROLES.ADMIN %}Admin
-                        {% elseif m.role == ROLES.LEAD %}Lead
-                        {% else %}Member{% endif %}
-                    </small>
-                </span>
-
-                <div class="menu-container">
-                    <button class="dot-btn" onclick="toggleMenu(event, 'menu-{{ m.id }}')">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="12" cy="12" r="1"></circle>
-                            <circle cx="12" cy="5" r="1"></circle>
-                            <circle cx="12" cy="19" r="1"></circle>
-                        </svg>
-                    </button>
-                    <div id="menu-{{ m.id }}" class="dropdown-menu">
-                        <a href="/profile?user_id={{ m.id }}" class="dropdown-item-link">View Profile</a>
-                        
-                        {% if user.role >= ROLES.ADMIN and not is_me %}
-                            <hr style="border:0; border-top:1px solid var(--border-color); margin: 5px 0;">
-                            
-                            {# Promote button #}
-                            {% if m.role < ROLES.ADMIN %}
-                                <form action="/admin/change-role" method="POST" style="margin:0;">
-                                    <input type="hidden" name="user_id" value="{{ m.id }}">
-                                    <input type="hidden" name="action" value="promote">
-                                    <button type="submit">Promote</button>
-                                </form>
-                            {% endif %}
-
-                            {# Demote button #}
-                            {% if m.role > ROLES.MEMBER %}
-                                <form action="/admin/change-role" method="POST" style="margin:0;">
-                                    <input type="hidden" name="user_id" value="{{ m.id }}">
-                                    <input type="hidden" name="action" value="demote">
-                                    <button type="submit" style="color: var(--accent-red);">Demote</button>
-                                </form>
-                            {% endif %}
-                        {% endif %}
-                    </div>
-                </div>
-            </li>
+            </a>
         {% endif %}
-    {% endfor %}
 
-    {% if activeMembers == 0 %}
-        <li style="color: var(--text-muted); font-size:0.9rem; padding: 10px 0;">No active members</li>
-    {% endif %}
-</ul>
-</div>
+        <hr style="margin: 20px 0; border: 0; border-top: 1px solid var(--border-color);">
+        
+        <label style="font-size: 0.75rem; font-weight: bold; color: var(--text-muted);">MEMBERS</label>
+        
+        {% if user.role > ROLES.PENDING or not user.team %}
+            <ul style="list-style:none; padding:0; margin-top: 10px;">
+            {% set activeMembers = 0 %}
+            {% for m in members %}
+                {% if m.role > ROLES.PENDING %}
+                    {% set activeMembers = activeMembers + 1 %}
+                    {% set is_me = (m.id == user.user_id) %}
+                    <li class="member-row">
+                        <span style="font-size: 0.9rem; color: var(--text-main);">
+                            {{ m.user_name }} 
+                            {% if is_me %}<span style="color: var(--accent-red); font-weight: bold;">(You)</span>{% endif %}
+                            <small style="color:var(--text-muted); font-size:0.7rem; display: block;">
+                                {% if m.role == ROLES.OWNER %}Owner{% elseif m.role == ROLES.ADMIN %}Admin{% elseif m.role == ROLES.LEAD %}Lead{% else %}Member{% endif %}
+                            </small>
+                        </span>
+
+                        <div style="position: relative;">
+                            <button class="dot-btn" onclick="toggleMenu(event, 'menu-{{ m.id }}')">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle>
+                                </svg>
+                            </button>
+                            <div id="menu-{{ m.id }}" class="dropdown-menu">
+                                <a href="/profile?user_id={{ m.id }}" class="dropdown-item-link">View Profile</a>
+                                {% if user.role >= ROLES.ADMIN and not is_me %}
+                                    <hr style="border:0; border-top:1px solid var(--border-color); margin: 5px 0;">
+                                    {% if m.role < ROLES.ADMIN %}
+                                        <form action="/admin/change-role" method="POST" style="margin:0;">
+                                            <input type="hidden" name="user_id" value="{{ m.id }}"><input type="hidden" name="action" value="promote">
+                                            <button type="submit">Promote</button>
+                                        </form>
+                                    {% endif %}
+                                    {% if m.role > ROLES.MEMBER %}
+                                        <form action="/admin/change-role" method="POST" style="margin:0;">
+                                            <input type="hidden" name="user_id" value="{{ m.id }}"><input type="hidden" name="action" value="demote">
+                                            <button type="submit" style="color: var(--accent-red);">Demote</button>
+                                        </form>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </li>
+                {% endif %}
+            {% endfor %}
+            {% if activeMembers == 0 %}
+                <li style="color: var(--text-muted); font-size:0.9rem; padding: 10px 0;">No active members</li>
+            {% endif %}
+            </ul>
+        {% else %}
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 10px; font-style: italic;">
+                Member list hidden until approved.
+            </p>
+        {% endif %}
+    </div>
 </div>
 
 <script>
@@ -452,8 +431,6 @@ form[action="/admin/team-requests"] {
         const menu = document.getElementById(id);
         const isVisible = menu.style.display === 'block';
         document.querySelectorAll('.dropdown-menu').forEach(m => m.style.display = 'none');
-        const notifDropdown = document.getElementById('notifDropdown');
-        if (notifDropdown) { notifDropdown.classList.remove('show'); }
         menu.style.display = isVisible ? 'none' : 'block';
     }
 
@@ -467,26 +444,17 @@ form[action="/admin/team-requests"] {
         document.getElementById('deleteModal').style.display = 'none';
     }
 
-    document.addEventListener('click', () => { 
-        document.querySelectorAll('.dropdown-menu').forEach(m => m.style.display = 'none'); 
-    });
+    function toggleNotifications(event) {
+        event.stopPropagation();
+        const dropdown = document.getElementById('notifDropdown');
+        dropdown.classList.toggle('show');
+        document.querySelectorAll('.dropdown-menu').forEach(m => m.style.display = 'none');
+    }
 
-    
-        function toggleNotifications(event) {
-            event.stopPropagation();
-            const dropdown = document.getElementById('notifDropdown');
-            dropdown.classList.toggle('show');
-    
-            document.querySelectorAll('.dropdown-menu').forEach(m => m.style.display = 'none');
-        }
-        document.addEventListener('click', function() { 
-            document.querySelectorAll('.dropdown-menu').forEach(m => {
-                m.style.display = 'none';
-            }); 
-            const notifDropdown = document.getElementById('notifDropdown');
-            if (notifDropdown) {
-                notifDropdown.classList.remove('show');
-            }
-        });
+    document.addEventListener('click', function() { 
+        document.querySelectorAll('.dropdown-menu').forEach(m => m.style.display = 'none'); 
+        const notifDropdown = document.getElementById('notifDropdown');
+        if (notifDropdown) notifDropdown.classList.remove('show');
+    });
 </script>
 {% endblock %}

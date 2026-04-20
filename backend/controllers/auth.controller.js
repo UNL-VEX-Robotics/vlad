@@ -1,7 +1,5 @@
 import bcrypt from "bcrypt";
 import db from "../db.js";
-import { withLayout } from "../views/layout.js";
-import { signupPage, loginPage, createTeamPage, joinTeamPage } from "../views/auth/auth.view.js";
 import { ROLES, EMAIL_REGEX, SALT_ROUNDS, PASSWORD_REGEX } from "../utils/constants.js";
 import logger from "../utils/logger.js";
 
@@ -14,8 +12,10 @@ import logger from "../utils/logger.js";
  */
 export const renderSignup = (req, res) => {
     const error = req.query.error;
-    const content = signupPage(error);
-    res.send(withLayout("Sign Up", content, req));
+    return res.render("auth/signup", {
+        title: "Signup",
+        error: error,
+    });
 };
 
 /**
@@ -23,8 +23,10 @@ export const renderSignup = (req, res) => {
  */
 export const renderLogin = (req, res) => {
     const error = req.query.error;
-    const content = loginPage(error);
-    res.send(withLayout("Log In", content, req));
+    return res.render("auth/login", {
+        title: "Login",
+        error: error,
+    });
 };
 
 /**
@@ -32,8 +34,10 @@ export const renderLogin = (req, res) => {
  */
 export const renderCreateTeam = (req, res) => {
     const error = req.query.error;
-    const content = createTeamPage(error);
-    res.send(withLayout("Create Team", content, req));
+    return res.render("auth/create_team", {
+        title: "Create Team",
+        error: error,
+    });
 };
 
 /**
@@ -41,8 +45,10 @@ export const renderCreateTeam = (req, res) => {
  */
 export const renderJoinTeam = (req, res) => {
     const error = req.query.error;
-    const content = joinTeamPage(error);
-    res.send(withLayout("Join Team", content, req));
+    return res.render("auth/join_team", {
+        title: "Join Team",
+        error: error,
+    });
 };
 
 /**

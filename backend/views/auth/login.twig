@@ -1,0 +1,141 @@
+{% extends "../layout.twig" %}
+
+{% block content %}
+<style>
+    .auth-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 85vh; 
+        padding: 40px 20px;
+    }
+
+    .auth-card {
+        width: 100%;
+        max-width: 420px; 
+    }
+
+    .alert-box {
+        background-color: var(--alert-bg);
+        color: var(--alert-text);
+        border: 1px solid var(--alert-border);
+        padding: 12px;
+        border-radius: 6px;
+        margin-bottom: 20px;
+        font-size: 0.9rem;
+        text-align: center;
+        font-weight: 500;
+    }
+
+    .btn {
+        display: block;
+        width: 100%;
+        padding: 12px;
+        border-radius: 6px;
+        font-size: 1rem;
+        font-weight: 600;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-sizing: border-box;
+        text-decoration: none;
+        border: none;
+    }
+
+    .btn-primary {
+        background-color: var(--accent-red);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background-color: var(--accent-hover);
+    }
+
+    .btn-secondary {
+        background-color: var(--btn-secondary-bg);
+        color: var(--btn-secondary-text);
+        margin-top: 8px; 
+    }
+
+    .btn-secondary:hover {
+        filter: brightness(0.95);
+    }
+
+    input:not([type="submit"]) {
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 1rem;
+        box-sizing: border-box;
+        background-color: var(--input-bg);
+        color: var(--text-main);
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+    }
+
+    .password-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+        width: 100%;
+        margin-bottom: 1.2rem;
+    }
+
+    .password-wrapper input {
+        margin-bottom: 0; 
+        padding-right: 65px; 
+    }
+
+    .password-toggle-text {
+        position: absolute;
+        right: 15px;
+        cursor: pointer;
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        user-select: none;
+        font-weight: bold;
+        z-index: 10;
+        background: transparent;
+    }
+</style>
+
+<div class="auth-container">
+    <div class="card auth-card">
+        <form method="POST" action="/auth/login">
+            <h2 style="margin-top: 0; color: var(--text-heading);">Log In</h2>
+            
+            {% if error %}
+                <div class="alert-box">{{ error }}</div>
+            {% endif %}
+            
+            <label style="color: var(--text-label);">Email</label>
+            <input type="email" name="email" placeholder="Email" inputmode="email" required />
+            
+            <label style="color: var(--text-label);">Password</label>
+            <div class="password-wrapper">
+                <input type="password" id="pass" name="password" placeholder="Password" required />
+                <span class="password-toggle-text" onclick="togglePassword('pass', this)">Show</span>
+            </div>
+
+            <input type="submit" value="Login" class="btn btn-primary" style="margin-top: 10px;" />
+        </form>
+        
+        <div style="margin-top: 15px; display: flex; flex-direction: column;">
+            <a href="/reset/forgot-password" class="btn btn-secondary">Forgot Password?</a>
+            <a href="/auth/signup" class="btn btn-secondary">New here? Signup</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    function togglePassword(inputId, element) {
+        const input = document.getElementById(inputId);
+        if (input.type === "password") {
+            input.type = "text";
+            element.textContent = "Hide";
+        } else {
+            input.type = "password";
+            element.textContent = "Show";
+        }
+    }
+</script>
+{% endblock %}
